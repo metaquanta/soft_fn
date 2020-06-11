@@ -1,41 +1,18 @@
-/*
- * This is free and unencumbered software released into the public domain.
- *
- * Anyone is free to copy, modify, publish, use, compile, sell, or
- * distribute this software, either in source code form or as a compiled
- * binary, for any purpose, commercial or non-commercial, and by any
- * means.
- *
- * For more information, please refer to <http://unlicense.org/>
- */
-
 #define STUPIDLAYERS_IMPLEMENTATION
 #include "stupidlayers.c"
-
-/*
- * motospeed ck62 keybinds
- * - caps lock is esc
- * - esc is `
- * - esc acts as fn key if held down
- * - esc + q is `
- * - esc + shift + q is ~
- * - esc + e is ~
- */
 
 typedef struct {
   stupidlayers_t* sl;
   int matched_hotkey;
   int physical_leftmeta_value;
-  int power_time;
-} ck62_state_t;
+} phys_state;
 
 struct input_event vev;
-
 void insert_virtual_event(stupidlayers_t* sl, struct input_event* ev, char* k, int value) {
   vev = *ev;
   vev.value = value;
   vev.code = KEY_LEFTMETA;
-  fprintf(stderr, "+ 0x%x = %x\n", vev.code, vev.value);
+  //fprintf(stderr, "+ 0x%x = %x\n", vev.code, vev.value);
   k[KEY_LEFTMETA] = value;
   stupidlayers_send(sl, &vev);
 }
@@ -63,17 +40,16 @@ int fn_remap(int code) {
 }
  
 static int pre_handler(void* data, struct input_event* ev, char* k) {
-  ck62_state_t* ck62 = data;
-  stupidlayers_t* sl = ck62->sl;
-
+  phys_state* state = data;
+  
   if(ev->code == KEY_LEFTMETA) {
-    ck62->physical_leftmeta_value = ev->value;
+    state->physical_leftmeta_value = ev->value;
     if(ev->value == 0) {
-      if(ck62->matched_hotkey) { // used as fn -> consume ev.
-        ck62->matched_hotkey = 0;
+      if(state->matched_hotkey) { // used as fn -> consume ev.
+        state->matched_hotkey = 0;
       } else if(!k[KEY_LEFTMETA]) {
         // tap -> insert down ev.
-        insert_virtual_event(sl, ev, k, 1);
+        insert_virtual_event(state->sl, ev, k, 1);
       }
       if(k[KEY_LEFTMETA]) {
         return 0;
@@ -94,46 +70,28 @@ static int pre_handler(void* data, struct input_event* ev, char* k) {
     return 1;
   }
 
-  if(ck62->physical_leftmeta_value) {
+  if(state->physical_leftmeta_value) {
     int fn_code = fn_remap(ev->code);
     if(fn_code == -1 && !k[KEY_LEFTMETA]) {
-      insert_virtual_event(sl, ev, k, 1);
+      insert_virtual_event(state->sl, ev, k, 1);
     } else if (fn_code > 0 && k[KEY_LEFTMETA]) {
-      insert_virtual_event(sl, ev, k, 0);
+      insert_virtual_event(state->sl, ev, k, 0);
     }
     
     if(fn_code > 0) {
-      ck62->matched_hotkey = 1;
+      state->matched_hotkey = 1;
       ev->code = fn_code;
     }
   }
   return 0;
 }
 
-static int post_handler(void* data, struct input_event* ev, char* k) {
-  /* ignore esc keydown. we will send it ourselves if no hotkeys match */
-  return ev->code == KEY_LEFTMETA && ev->value;
-}
-
-#define die(x) { fprintf(stderr, x); exit(1); }
-
-static int run_cli(char* device) {
-  ck62_state_t ck62;
-  stupidlayers_t* sl;
-  ck62.sl = sl = new_stupidlayers(device);
-  ck62.matched_hotkey = 0;
-  if (!sl) { return 1; }
-  if (sl->errstr) die(sl->errstr);
-  stupidlayers_run(sl, pre_handler, 0, &ck62);
-  if (sl->errstr) die(sl->errstr);
-  return 0;
-}
-
 int main(int argc, char* argv[]) {
-  if (argc < 1) {
-    fprintf(stderr, "usage: %s /dev/input/eventX\n"
-      "you can use use evtest to list devices\n", argv[0]);
-    return 1;
-  }
-  return run_cli(argv[1]);
+  phys_state state;
+  stupidlayers_t* sl;
+  state.sl = new_stupidlayers(argv[1]);
+  state.matched_hotkey = 0;
+  state.physical_leftmeta_value = 0;
+  stupidlayers_run(state.sl, pre_handler, 0, &state);
+  return 0;
 }

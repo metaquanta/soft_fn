@@ -157,11 +157,11 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* pre_handler,
         continue;
       }
       /* modify event here if desired */
-      fprintf(stderr, "in 0x%x = %x\n", ev.code, ev.value);
+      //fprintf(stderr, "in 0x%x = %x\n", ev.code, ev.value);
       if (pre_handler && pre_handler(data, &ev, sl->keys)) {
         continue;
       }
-      fprintf(stderr, "out 0x%x = %x\n", ev.code, ev.value);
+      //fprintf(stderr, "out 0x%x = %x\n", ev.code, ev.value);
       sl->keys[ev.code] = (char)ev.value;
       if (post_handler && post_handler(data, &ev, sl->keys)) {
         continue;
