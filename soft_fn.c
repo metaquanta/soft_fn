@@ -3,19 +3,11 @@
 
 typedef struct {
   stupidlayers_t* sl;
-  int matched_hotkey;
+  int virtual_fn_value;
   int physical_leftmeta_value;
-} phys_state;
+} key_state;
 
 struct input_event vev;
-void insert_virtual_event(stupidlayers_t* sl, struct input_event* ev, char* k, int value) {
-  vev = *ev;
-  vev.value = value;
-  vev.code = KEY_LEFTMETA;
-  //fprintf(stderr, "+ 0x%x = %x\n", vev.code, vev.value);
-  k[KEY_LEFTMETA] = value;
-  stupidlayers_send(sl, &vev);
-}
 
 int fn_remap(int code) {
   switch (code) {
@@ -38,60 +30,94 @@ int fn_remap(int code) {
       return -1;
   }
 }
+
+int is_accelerator(int code) {
+  switch (code) {
+    case KEY_LEFTSHIFT:
+    case KEY_RIGHTSHIFT:
+    case KEY_LEFTALT:
+    case KEY_RIGHTALT:
+    case KEY_LEFTCTRL:
+    case KEY_RIGHTCTRL:
+      return 1;
+  }
+  return 0;
+}
  
-static int pre_handler(void* data, struct input_event* ev, char* k) {
-  phys_state* state = data;
+void insert_virtual_event(stupidlayers_t* sl, struct input_event* ev, int v) {
+  vev = *ev;
+  vev.value = v;
+  vev.code = KEY_LEFTMETA;
+  //fprintf(stderr, "+ 0x%x = %x\n", vev.code, vev.value);
+  sl->keys[KEY_LEFTMETA] = v;
+  stupidlayers_send(sl, &vev);
+}
+
+static int key_handler(void* data, struct input_event* ev, char* k) {
+  key_state* state = data;
   
   if(ev->code == KEY_LEFTMETA) {
     state->physical_leftmeta_value = ev->value;
     if(ev->value == 0) {
-      if(state->matched_hotkey) { // used as fn -> consume ev.
-        state->matched_hotkey = 0;
+      if(state->virtual_fn_value) {
+        state->virtual_fn_value = 0;
       } else if(!k[KEY_LEFTMETA]) {
         // tap -> insert down ev.
-        insert_virtual_event(state->sl, ev, k, 1);
+        insert_virtual_event(state->sl, ev, 1);
       }
       if(k[KEY_LEFTMETA]) {
         return 0;
       }
     }
-    // search key down -> consume ev.
+    // key down -> discard.
     return 1;
+  }
+
+  if(is_accelerator(ev->code)) {
+    return 0;
   }
   
   if(ev->value != 1) {
     if(k[ev->code]) {
+      // key was down.
       return 0;
     }
     ev->code = fn_remap(ev->code);
     if(k[ev->code]) {
+      // fn+key was down.
       return 0;
     }
+    // unreachable
     return 1;
   }
 
   if(state->physical_leftmeta_value) {
     int fn_code = fn_remap(ev->code);
     if(fn_code == -1 && !k[KEY_LEFTMETA]) {
-      insert_virtual_event(state->sl, ev, k, 1);
+      // insert previously suppressed accelerator.
+      insert_virtual_event(state->sl, ev, 1);
     } else if (fn_code > 0 && k[KEY_LEFTMETA]) {
-      insert_virtual_event(state->sl, ev, k, 0);
+      // lift for fn-mapping.
+      insert_virtual_event(state->sl, ev, 0);
     }
     
     if(fn_code > 0) {
-      state->matched_hotkey = 1;
+      state->virtual_fn_value = 1;
       ev->code = fn_code;
     }
   }
+
+  // key down without any fn logic.
   return 0;
 }
 
 int main(int argc, char* argv[]) {
-  phys_state state;
-  stupidlayers_t* sl;
+  // init state.
+  key_state state;
   state.sl = new_stupidlayers(argv[1]);
-  state.matched_hotkey = 0;
+  state.virtual_fn_value = 0;
   state.physical_leftmeta_value = 0;
-  stupidlayers_run(state.sl, pre_handler, 0, &state);
+  
+  stupidlayers_run(state.sl, key_handler, 0, &state);
   return 0;
 }
