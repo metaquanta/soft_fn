@@ -21,6 +21,7 @@ int fn_remap(int code) {
     case KEY_F8: return KEY_MUTE; 
     case KEY_F9: return KEY_VOLUMEDOWN; 
     case KEY_F10: return KEY_VOLUMEUP; 
+    case KEY_F11: return KEY_POWER;
     case KEY_UP: return KEY_PAGEUP; 
     case KEY_LEFT: return KEY_HOME; 
     case KEY_RIGHT: return KEY_END; 
@@ -75,6 +76,10 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
 
   if(is_accelerator(ev->code)) {
     return 0;
+  }
+
+  if(ev->code == KEY_POWER) {
+    ev->code = KEY_F11;
   }
   
   if(ev->value != 1) {
