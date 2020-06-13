@@ -18,7 +18,7 @@
 typedef struct stupidlayers stupidlayers_t;
 
 /* grab /dev/input/event* device exclusively and create a uinput device */
-stupidlayers_t* new_stupidlayers(char* device);
+stupidlayers_t* new_stupidlayers(char* device, char* name);
 
 /* write input_event ev to the uinput device */
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev);
@@ -66,7 +66,7 @@ struct stupidlayers {
   int stop;
 };
 
-stupidlayers_t* new_stupidlayers(char* device) {
+stupidlayers_t* new_stupidlayers(char* device, char* name) {
   stupidlayers_t* sl = calloc(sizeof(stupidlayers_t), 1);
   struct uinput_user_dev uidev;
   int i;
@@ -109,7 +109,7 @@ stupidlayers_t* new_stupidlayers(char* device) {
     }
   }
   memset(&uidev, 0, sizeof(uidev));
-  strcpy(uidev.name, "stupidlayers");
+  strcpy(uidev.name, name);
   if (write(sl->uinput, &uidev, sizeof(uidev)) < 0) {
     perror("write");
     sl->errstr = "failed to write to uinput";

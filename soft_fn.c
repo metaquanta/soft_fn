@@ -7,8 +7,6 @@ typedef struct {
   int physical_leftmeta_value;
 } key_state;
 
-struct input_event vev;
-
 int fn_remap(int code) {
   switch (code) {
     case KEY_F1: return KEY_BACK;
@@ -46,6 +44,7 @@ int is_accelerator(int code) {
 }
  
 void insert_virtual_event(stupidlayers_t* sl, struct input_event* ev, int v) {
+  static struct input_event vev;
   vev = *ev;
   vev.value = v;
   vev.code = KEY_LEFTMETA;
@@ -117,9 +116,14 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
 }
 
 int main(int argc, char* argv[]) {
+  if(argc != 2) {
+    fprintf(stderr, "usage: %s /dev/input/eventX\n", argv[0]);
+    return -1;
+  }
+
   // init state.
   key_state state;
-  state.sl = new_stupidlayers(argv[1]);
+  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
   state.virtual_fn_value = 0;
   state.physical_leftmeta_value = 0;
   
