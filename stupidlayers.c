@@ -18,14 +18,13 @@
 typedef struct stupidlayers stupidlayers_t;
 
 /* grab /dev/input/event* device exclusively and create a uinput device */
-stupidlayers_t* new_stupidlayers(char* device, char* name);
+stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode);
 
 /* write input_event ev to the uinput device */
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev);
 
 /* see stupidlayers_run */
-typedef int input_handler_t(void* data, struct input_event* ev,
-  char* key_states);
+typedef int input_handler_t(void* data, struct input_event* ev);
 
 /*
  * read keyboard events in a blocking loop and forward them to the virtual
@@ -40,8 +39,7 @@ typedef int input_handler_t(void* data, struct input_event* ev,
  * pre_handler is called before the key_states array is modified
  * post_handler is called after the key_states array is modified
  */
-void stupidlayers_run(stupidlayers_t* sl, input_handler_t* pre_handler,
-  input_handler_t* post_handler, void* data);
+void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data);
 
 /* stop stupidlayers_run loop */
 void stupidlayers_stop(stupidlayers_t* sl);
@@ -62,11 +60,10 @@ void stupidlayers_stop(stupidlayers_t* sl);
 struct stupidlayers {
   char* errstr;
   int fd, uinput;
-  char keys[255];
   int stop;
 };
 
-stupidlayers_t* new_stupidlayers(char* device, char* name) {
+stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode) {
   stupidlayers_t* sl = calloc(sizeof(stupidlayers_t), 1);
   struct uinput_user_dev uidev;
   int i;
@@ -101,7 +98,7 @@ stupidlayers_t* new_stupidlayers(char* device, char* name) {
   }
   evbit(EV_KEY)
   #undef evbit
-  for (i = 1; i < 255; ++i) {
+  for (i = 1; i < maxcode; ++i) {
     if (ioctl(sl->uinput, UI_SET_KEYBIT, i) < 0) {
       perror("ioctl");
       sl->errstr = "failed to set keybit";
@@ -141,8 +138,7 @@ int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev) {
   return 1;
 }
 
-void stupidlayers_run(stupidlayers_t* sl, input_handler_t* pre_handler,
-  input_handler_t* post_handler, void* data)
+void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
 {
   struct input_event ev;
   while (!sl->stop) {
@@ -152,18 +148,8 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* pre_handler,
       return;
     }
     if (ev.type == EV_KEY) {
-      if (ev.code > sizeof(sl->keys)) {
-        fprintf(stderr, "W: ignoring large keycode 0x%x\n", ev.code);
-        continue;
-      }
       /* modify event here if desired */
-      //fprintf(stderr, "in 0x%x = %x\n", ev.code, ev.value);
-      if (pre_handler && pre_handler(data, &ev, sl->keys)) {
-        continue;
-      }
-      //fprintf(stderr, "out 0x%x = %x\n", ev.code, ev.value);
-      sl->keys[ev.code] = (char)ev.value;
-      if (post_handler && post_handler(data, &ev, sl->keys)) {
+      if (handler && handler(data, &ev)) {
         continue;
       }
     }

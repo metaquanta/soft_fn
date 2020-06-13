@@ -5,6 +5,7 @@ typedef struct {
   stupidlayers_t* sl;
   int virtual_fn_value;
   int physical_leftmeta_value;
+  char keys[KEY_FULL_SCREEN];
 } key_state;
 
 int fn_remap(int code) {
@@ -12,7 +13,7 @@ int fn_remap(int code) {
     case KEY_F1: return KEY_BACK;
     case KEY_F2: return KEY_FORWARD; 
     case KEY_F3: return KEY_REFRESH; 
-    case KEY_F4: return KEY_SWITCHVIDEOMODE;
+    case KEY_F4: return KEY_FULL_SCREEN;
     case KEY_F5: return KEY_SCALE; 
     case KEY_F6: return KEY_BRIGHTNESSDOWN;
     case KEY_F7: return KEY_BRIGHTNESSUP;
@@ -43,17 +44,17 @@ int is_accelerator(int code) {
   return 0;
 }
  
-void insert_virtual_event(stupidlayers_t* sl, struct input_event* ev, int v) {
+void insert_virtual_event(stupidlayers_t* sl, key_state* state, struct input_event* ev, int v) {
   static struct input_event vev;
   vev = *ev;
   vev.value = v;
   vev.code = KEY_LEFTMETA;
   //fprintf(stderr, "+ 0x%x = %x\n", vev.code, vev.value);
-  sl->keys[KEY_LEFTMETA] = v;
+  state->keys[KEY_LEFTMETA] = v;
   stupidlayers_send(sl, &vev);
 }
 
-static int key_handler(void* data, struct input_event* ev, char* k) {
+static int key_handler(void* data, struct input_event* ev) {
   key_state* state = data;
   
   if(ev->code == KEY_LEFTMETA) {
@@ -61,11 +62,12 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
     if(ev->value == 0) {
       if(state->virtual_fn_value) {
         state->virtual_fn_value = 0;
-      } else if(!k[KEY_LEFTMETA]) {
+      } else if(!state->keys[KEY_LEFTMETA]) {
         // tap -> insert down ev.
-        insert_virtual_event(state->sl, ev, 1);
+        insert_virtual_event(state->sl, state, ev, 1);
       }
-      if(k[KEY_LEFTMETA]) {
+      if(state->keys[KEY_LEFTMETA]) {
+        state->keys[KEY_LEFTMETA] = 0;
         return 0;
       }
     }
@@ -74,6 +76,7 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
   }
 
   if(is_accelerator(ev->code)) {
+    state->keys[ev->code] = ev->value;
     return 0;
   }
 
@@ -82,13 +85,15 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
   }
   
   if(ev->value != 1) {
-    if(k[ev->code]) {
+    if(state->keys[ev->code]) {
       // key was down.
+      state->keys[ev->code] = ev->value;
       return 0;
     }
     ev->code = fn_remap(ev->code);
-    if(k[ev->code]) {
+    if(state->keys[ev->code]) {
       // fn+key was down.
+      state->keys[ev->code] = ev->value;
       return 0;
     }
     // unreachable
@@ -97,12 +102,12 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
 
   if(state->physical_leftmeta_value) {
     int fn_code = fn_remap(ev->code);
-    if(fn_code == -1 && !k[KEY_LEFTMETA]) {
+    if(fn_code == -1 && !state->keys[KEY_LEFTMETA]) {
       // insert previously suppressed accelerator.
-      insert_virtual_event(state->sl, ev, 1);
-    } else if (fn_code > 0 && k[KEY_LEFTMETA]) {
+      insert_virtual_event(state->sl, state, ev, 1);
+    } else if (fn_code > 0 && state->keys[KEY_LEFTMETA]) {
       // lift for fn-mapping.
-      insert_virtual_event(state->sl, ev, 0);
+      insert_virtual_event(state->sl, state, ev, 0);
     }
     
     if(fn_code > 0) {
@@ -112,6 +117,7 @@ static int key_handler(void* data, struct input_event* ev, char* k) {
   }
 
   // key down without any fn logic.
+  state->keys[ev->code] = ev->value;
   return 0;
 }
 
@@ -123,10 +129,10 @@ int main(int argc, char* argv[]) {
 
   // init state.
   key_state state;
-  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
+  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)", KEY_FULL_SCREEN);
   state.virtual_fn_value = 0;
   state.physical_leftmeta_value = 0;
   
-  stupidlayers_run(state.sl, key_handler, 0, &state);
+  stupidlayers_run(state.sl, key_handler, &state);
   return 0;
 }
