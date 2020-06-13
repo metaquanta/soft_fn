@@ -12,7 +12,7 @@ int fn_remap(int code) {
     case KEY_F1: return KEY_BACK;
     case KEY_F2: return KEY_FORWARD; 
     case KEY_F3: return KEY_REFRESH; 
-    case KEY_F4: return KEY_FULL_SCREEN;
+    case KEY_F4: return KEY_SWITCHVIDEOMODE;
     case KEY_F5: return KEY_SCALE; 
     case KEY_F6: return KEY_BRIGHTNESSDOWN;
     case KEY_F7: return KEY_BRIGHTNESSUP;
