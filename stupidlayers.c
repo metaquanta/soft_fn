@@ -98,7 +98,7 @@ stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode) {
   }
   evbit(EV_KEY)
   #undef evbit
-  for (i = 1; i < maxcode; ++i) {
+  for (i = 1; i <= maxcode; ++i) {
     if (ioctl(sl->uinput, UI_SET_KEYBIT, i) < 0) {
       perror("ioctl");
       sl->errstr = "failed to set keybit";
