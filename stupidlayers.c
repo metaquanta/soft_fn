@@ -98,14 +98,8 @@ stupidlayers_t* new_stupidlayers(char* device, char* name) {
     return sl; \
   }
   evbit(EV_KEY)
+  evbit(EV_MSC)
   #undef evbit
-  /*for (i = 1; i <= maxcode; ++i) {
-    if (ioctl(sl->uinput, UI_SET_KEYBIT, i) < 0) {
-      perror("ioctl");
-      sl->errstr = "failed to set keybit";
-      return sl;
-    }
-  }*/
   memset(&uidev, 0, sizeof(uidev));
   strcpy(uidev.name, name);
   if (write(sl->uinput, &uidev, sizeof(uidev)) < 0) {
@@ -113,11 +107,6 @@ stupidlayers_t* new_stupidlayers(char* device, char* name) {
     sl->errstr = "failed to write to uinput";
     return sl;
   }
-  /*if (ioctl(sl->uinput, UI_DEV_CREATE) < 0) {
-    perror("ioctl");
-    sl->errstr = "UI_DEV_CREATE failed";
-    return sl;
-  }*/
   return sl;
 }
 
@@ -140,6 +129,7 @@ void free_stupidlayers(stupidlayers_t* sl) {
 }
 
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev) {
+  fprintf(stderr, "type: %i, code: %i, value: %i\n",ev->type, ev->code, ev->value);
   if (write(sl->uinput, ev, sizeof(struct input_event)) < 0) {
     perror("write");
     sl->errstr = "failed to write to uinput";
@@ -156,6 +146,7 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
     sl->errstr = "UI_DEV_CREATE failed";
     return;
   }
+  int last_ev_type = 0;
   while (!sl->stop) {
     if (read(sl->fd, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("read");
@@ -167,9 +158,12 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
       if (handler && handler(data, &ev)) {
         continue;
       }
+    } else if (ev.type == EV_SYN && last_ev_type == EV_SYN) {
+      continue;
     }
     /* forward event to the virtual device */
     if (!stupidlayers_send(sl, &ev)) { break; }
+    last_ev_type = ev.type;
   }
 }
 
