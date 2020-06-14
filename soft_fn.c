@@ -129,17 +129,6 @@ static int key_handler(void* data, struct input_event* ev) {
   }
   
   if(ev->value != 1) {
-    /*if(state->keys[ev->code]) {
-      // key was down.
-      state->keys[ev->code] = ev->value;
-      return 0;
-    }
-    ev->code = fn_remap(ev->code);
-    if(state->keys[ev->code]) {
-      // fn+key was down.
-      state->keys[ev->code] = ev->value;
-      return 0;
-    }*/
     if(get_key_fn(state, ev->code)) {
       set_key_fn(state, ev->code, ev->value);
       ev->code = fn_remap(ev->code);
@@ -176,8 +165,6 @@ int main(int argc, char* argv[]) {
   // init state.
   key_state state;
   state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)", KEY_FULL_SCREEN);
-  state.virtual_fn_value = 0;
-  state.leftmeta = 0;
   
   stupidlayers_run(state.sl, key_handler, &state);
   return 0;
