@@ -5,6 +5,7 @@ typedef struct {
   stupidlayers_t* sl;
   char virtual_fn_value;
   char virtual_leftmeta_value;
+  char alt_value;
   char leftmeta;
   char fn[10];
   char power;
@@ -14,6 +15,13 @@ typedef struct {
   char right; 
   char backspace;
 } key_state;
+
+void init_key_state(key_state* state) {
+  state->virtual_fn_value = 0;
+  state->virtual_leftmeta_value = 0;
+  state->alt_value = 0;
+  state->leftmeta = 0;
+}
 
 static int set_keys(stupidlayers_t* sl) {
   for(int i = 1; i <= 68; ++i) {
@@ -123,6 +131,16 @@ static void insert_virtual_event(stupidlayers_t* sl, key_state* state, struct in
   stupidlayers_send(sl, &vev);
 }
 
+static void insert_caps_events(stupidlayers_t* sl, struct input_event* ev) {
+  static struct input_event vev;
+  vev = *ev; // get timestamp data
+  vev.code = KEY_CAPSLOCK;
+  vev.value = 1;
+  stupidlayers_send(sl, &vev);
+  vev.value = 0;
+  stupidlayers_send(sl, &vev);
+}
+
 static int key_handler(void* data, struct input_event* ev) {
   key_state* state = data;
   
@@ -132,6 +150,10 @@ static int key_handler(void* data, struct input_event* ev) {
       if(state->virtual_fn_value) {
         state->virtual_fn_value = 0;
       } else if(!state->virtual_leftmeta_value) {
+        if(state->alt_value) {
+          insert_caps_events(state->sl, ev);
+          return 1;
+        }
         // tap -> insert down ev.
         insert_virtual_event(state->sl, state, ev, 1);
       }
@@ -145,6 +167,10 @@ static int key_handler(void* data, struct input_event* ev) {
   }
 
   if(is_accelerator(ev->code)) {
+    if(ev->code == KEY_LEFTALT || ev->code == KEY_RIGHTALT) {
+      state->alt_value = ev->value;
+    }
+    if(ev->value == 2) return 1; // don't repeat accelerators
     return 0;
   }
 
@@ -187,6 +213,8 @@ int main(int argc, char* argv[]) {
   }
 
   key_state state;
+  init_key_state(&state);
+
   state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
   
   if(set_keys(state.sl) < 0) return -1;
