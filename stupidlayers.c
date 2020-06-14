@@ -18,7 +18,7 @@
 typedef struct stupidlayers stupidlayers_t;
 
 /* grab /dev/input/event* device exclusively and create a uinput device */
-stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode);
+stupidlayers_t* new_stupidlayers(char* device, char* name);
 
 /* write input_event ev to the uinput device */
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev);
@@ -44,6 +44,8 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data);
 /* stop stupidlayers_run loop */
 void stupidlayers_stop(stupidlayers_t* sl);
 
+int stupidlayers_setkeybit(stupidlayers_t* sl, int k);
+
 #endif
 
 /* --------------------------------------------------------------------- */
@@ -63,10 +65,9 @@ struct stupidlayers {
   int stop;
 };
 
-stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode) {
+stupidlayers_t* new_stupidlayers(char* device, char* name) {
   stupidlayers_t* sl = calloc(sizeof(stupidlayers_t), 1);
   struct uinput_user_dev uidev;
-  int i;
   if (!sl) {
     perror("calloc");
     return 0;
@@ -98,13 +99,13 @@ stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode) {
   }
   evbit(EV_KEY)
   #undef evbit
-  for (i = 1; i <= maxcode; ++i) {
+  /*for (i = 1; i <= maxcode; ++i) {
     if (ioctl(sl->uinput, UI_SET_KEYBIT, i) < 0) {
       perror("ioctl");
       sl->errstr = "failed to set keybit";
       return sl;
     }
-  }
+  }*/
   memset(&uidev, 0, sizeof(uidev));
   strcpy(uidev.name, name);
   if (write(sl->uinput, &uidev, sizeof(uidev)) < 0) {
@@ -112,12 +113,21 @@ stupidlayers_t* new_stupidlayers(char* device, char* name, int maxcode) {
     sl->errstr = "failed to write to uinput";
     return sl;
   }
-  if (ioctl(sl->uinput, UI_DEV_CREATE) < 0) {
+  /*if (ioctl(sl->uinput, UI_DEV_CREATE) < 0) {
     perror("ioctl");
     sl->errstr = "UI_DEV_CREATE failed";
     return sl;
-  }
+  }*/
   return sl;
+}
+
+int stupidlayers_setkeybit(stupidlayers_t* sl, int k) {
+  if(ioctl(sl->uinput, UI_SET_KEYBIT, k) < 0) {
+    perror("ioctl");
+    sl->errstr = "failed to set keybit";
+    return -1;
+  } 
+  return 0;
 }
 
 void free_stupidlayers(stupidlayers_t* sl) {
@@ -141,6 +151,11 @@ int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev) {
 void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
 {
   struct input_event ev;
+  if (ioctl(sl->uinput, UI_DEV_CREATE) < 0) {
+    perror("ioctl");
+    sl->errstr = "UI_DEV_CREATE failed";
+    return;
+  }
   while (!sl->stop) {
     if (read(sl->fd, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("read");

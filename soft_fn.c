@@ -15,7 +15,31 @@ typedef struct {
   char backspace;
 } key_state;
 
-char get_key_fn(key_state* state, int code) {
+static int set_keys(stupidlayers_t* sl) {
+  for(int i = 1; i <= 68; ++i) {
+    if(i != 55) {
+      if (stupidlayers_setkeybit(sl, i) < 0)
+        return -1;
+    }
+  }
+  stupidlayers_setkeybit(sl, KEY_F11);
+  stupidlayers_setkeybit(sl, KEY_RIGHTCTRL);
+  stupidlayers_setkeybit(sl, KEY_RIGHTALT);
+  for(int i = 102; i <= 116; ++i) {
+    if(i != 110 && i != 112) stupidlayers_setkeybit(sl, i);
+  }
+  stupidlayers_setkeybit(sl, KEY_SCALE);
+  stupidlayers_setkeybit(sl, KEY_LEFTMETA);
+  stupidlayers_setkeybit(sl, KEY_BACK);
+  stupidlayers_setkeybit(sl, KEY_FORWARD);
+  stupidlayers_setkeybit(sl, KEY_REFRESH);
+  stupidlayers_setkeybit(sl, KEY_DASHBOARD);
+  stupidlayers_setkeybit(sl, KEY_BRIGHTNESSUP);
+  stupidlayers_setkeybit(sl, KEY_BRIGHTNESSDOWN);
+  return 0;
+}
+
+static char get_key_fn(key_state* state, int code) {
   if(code >= KEY_F1 && code <= KEY_F10) {
     return state->fn[code - KEY_F1];
   }
@@ -29,7 +53,7 @@ char get_key_fn(key_state* state, int code) {
   return 0;
 }
 
-void set_key_fn(key_state* state, int code, char value) {
+static void set_key_fn(key_state* state, int code, char value) {
   if(code >= KEY_F1 && code <= KEY_F10) {
     state->fn[code - KEY_F1] = value;
   }
@@ -53,7 +77,7 @@ void set_key_fn(key_state* state, int code, char value) {
   return;
 }
 
-int fn_remap(int code) {
+static int fn_remap(int code) {
   switch (code) {
     case KEY_F1: return KEY_BACK;
     case KEY_F2: return KEY_FORWARD; 
@@ -76,7 +100,7 @@ int fn_remap(int code) {
   }
 }
 
-int is_accelerator(int code) {
+char is_accelerator(int code) {
   switch (code) {
     case KEY_LEFTSHIFT:
     case KEY_RIGHTSHIFT:
@@ -89,7 +113,7 @@ int is_accelerator(int code) {
   return 0;
 }
  
-void insert_virtual_event(stupidlayers_t* sl, key_state* state, struct input_event* ev, int v) {
+static void insert_virtual_event(stupidlayers_t* sl, key_state* state, struct input_event* ev, int v) {
   static struct input_event vev;
   vev = *ev;
   vev.value = v;
@@ -162,10 +186,11 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  // init state.
   key_state state;
-  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)", KEY_FULL_SCREEN);
+  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
   
+  if(set_keys(state.sl) < 0) return -1;
+
   stupidlayers_run(state.sl, key_handler, &state);
   return 0;
 }
