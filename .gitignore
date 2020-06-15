@@ -1,2 +1,8 @@
 soft_fn
 *.o
+debian/.debhelper
+debian/soft-fn 
+debian/soft-fn.postrm.debhelper 
+debian/soft-fn.substvars
+debian/files
+debian/debhelper-build-stamp

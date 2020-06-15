@@ -2,7 +2,7 @@ Source: soft-fn
 Section: utils
 Priority: optional
 Maintainer: m <m@metaquanta.com>
-Build-Depends: debhelper-compat (= 12) locales
+Build-Depends: debhelper-compat (= 12), locales
 Standards-Version: 4.5.0
 Homepage: https://github.com/metaquanta/soft_fn
 #Vcs-Browser: https://github.com/metaquanta/soft_fn
@@ -10,6 +10,9 @@ Homepage: https://github.com/metaquanta/soft_fn
 
 Package: soft-fn
 Architecture: any
-Depends: systemd
-Description: Provides <SEARCH> triggered layer-switching on the internal keyboard similar to ChromeOS
-Provides a uinput virtual keyboard that behaves as though the Chromebook <SEARCH> key is an <FN> key when combined with certain keys (the arrow keys, the function/media keys, and delete) while continuing to be an ordinary accelerator (<LEFTMETA>) when combined with other keys. 
+Depends: systemd, ${shlibs:Depends}
+Description: Provides <SEARCH> triggered layer-switching for Chromebooks.
+ Provides a uinput virtual keyboard that behaves as though the Chromebook
+ <SEARCH> key is an <FN> key when combined with certain keys (the arrow keys,
+ the function/media keys, and delete) while continuing to be an ordinary
+ accelerator (<LEFTMETA>) when combined with other keys. 

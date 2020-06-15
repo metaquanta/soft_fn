@@ -3,13 +3,13 @@ Upstream-Name: soft-fn
 Upstream-Contact: m@metaquanta.com
 Source: https://github.com/metaquanta/soft_fn
 
-Files: stupidlayers.c
-Copyright: 2019 Francesco149
-License: UNLICENSE
-
 Files: *
 Copyright: 2020 m@metaquanta.com
 License: GPL-3.0+
+
+Files: stupidlayers.c
+Copyright: 2019 Francesco149
+License: UNLICENSE
 
 License: GPL-3.0+
  This program is free software: you can redistribute it and/or modify
