@@ -1,0 +1,14 @@
+[Unit]
+Description:Provides <SEARCH> triggered layer-switching on the internal keyboard similar to ChromeOS
+Before:gdm.service
+Before:getty.service systemd-logind-service
+Requires:udev.service 
+
+[Service]
+Nice=-19
+IOSchedulingClass=realtime
+ExecStart=/usr/share/soft_fn/launch.sh
+
+[Install]
+WantedBy:graphical.target
+WantedBy:multi-user.target
