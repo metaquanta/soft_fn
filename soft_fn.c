@@ -1,42 +1,52 @@
 #define STUPIDLAYERS_IMPLEMENTATION
 #include "stupidlayers.c"
+ 
+#define SetBit(A, k) (A[(k) / 8] |= (1 << (k) % 8))
+#define ClearBit(A, k) (A[(k) / 8] &= ~(1 << (k) % 8))            
+#define TestBit(A, k) (A[(k) / 8] & (1 << (k) % 8))
 
-typedef struct {
-  stupidlayers_t* sl;
-  char virtual_fn_value;
-  char virtual_meta_value;
-  char alt_value;
-  char leftmeta;
-  char backspace;
-  char fn[10];
-  char f11;
-  char up;
-  char left;
-  char right;
-  char down; 
-  int fn_map[10];
-} key_state;
+static int fx_map[] = {
+  KEY_BACK, 
+  KEY_FORWARD,
+  KEY_REFRESH,
+  KEY_DASHBOARD,
+  KEY_SCALE,
+  KEY_BRIGHTNESSDOWN,
+  KEY_BRIGHTNESSUP,
+  KEY_MUTE,
+  KEY_VOLUMEDOWN,
+  KEY_VOLUMEUP
+};
 
-void init_key_state(key_state* state) {
-  state->virtual_fn_value = 0;
-  state->virtual_meta_value = 0;
-  state->alt_value = 0;
-  state->leftmeta = 0;
-  state->fn_map[0] = KEY_BACK;
-  state->fn_map[1] = KEY_FORWARD;
-  state->fn_map[2] = KEY_REFRESH;
-  state->fn_map[3] = KEY_DASHBOARD;
-  state->fn_map[4] = KEY_SCALE;
-  state->fn_map[5] = KEY_BRIGHTNESSDOWN;
-  state->fn_map[6] = KEY_BRIGHTNESSUP;
-  state->fn_map[7] = KEY_MUTE;
-  state->fn_map[8] = KEY_VOLUMEDOWN;
-  state->fn_map[9] = KEY_VOLUMEUP;
-}
+static stupidlayers_t* sl;
+  
+static struct {
+  unsigned int alt_down : 1;
+  unsigned int meta_down : 1;
+  unsigned int backspace_down : 1;
+  unsigned int f11_down : 1;
+  unsigned int up_down : 1;
+  unsigned int left_down : 1;
+  unsigned int right_down : 1;
+  unsigned int down_down : 1;
+  char fx_down[2];
+  unsigned int v_fn_value : 1;
+  unsigned int v_meta_value : 1;
+} state;
 
-static int fn_remap(key_state* state, int code) {
+static struct input_event meta_ev = {
+  .type = EV_KEY,
+  .code = KEY_LEFTMETA
+};
+
+static struct input_event caps_ev = {
+  .type = EV_KEY,
+  .code = KEY_CAPSLOCK
+}; 
+
+static int fn_map(int code) {
   if(code >= KEY_F1 && code <= KEY_F10) {
-    return state->fn_map[code - KEY_F1];
+    return fx_map[code - KEY_F1];
   }
 
   switch (code) {
@@ -51,7 +61,7 @@ static int fn_remap(key_state* state, int code) {
   return -1;
 }
 
-static int set_keys(stupidlayers_t* sl) {
+static int set_key_bits() {
   for(int i = 1; i <= 68; ++i) {
     if(i != 55) {
       if (stupidlayers_setkeybit(sl, i) < 0) {
@@ -76,47 +86,53 @@ static int set_keys(stupidlayers_t* sl) {
   return 0;
 }
 
-static char get_key_fn(key_state* state, int code) {
+static char get_key_fn(int code) {
   if(code >= KEY_F1 && code <= KEY_F10) {
-    return state->fn[code - KEY_F1];
+    return TestBit(state.fx_down, code - KEY_F1);
   }
 
   switch (code) {
-    case KEY_BACKSPACE: return state->backspace; 
-    case KEY_F11: return state->f11;
-    case KEY_UP: return state->up; 
-    case KEY_LEFT: return state->left; 
-    case KEY_RIGHT: return state->right; 
-    case KEY_DOWN: return state->down; 
+    case KEY_BACKSPACE: return state.backspace_down; 
+    case KEY_F11: return state.f11_down;
+    case KEY_UP: return state.up_down; 
+    case KEY_LEFT: return state.left_down; 
+    case KEY_RIGHT: return state.right_down; 
+    case KEY_DOWN: return state.down_down; 
   }
 
   return -1;
 }
 
-static void set_key_fn(key_state* state, int code, char value) {
+static void set_key_fn(int code, char value) {
+  int b = value > 0;
+
   if(code >= KEY_F1 && code <= KEY_F10) {
-    state->fn[code - KEY_F1] = value;
+    if(b) {
+      SetBit(state.fx_down, code - KEY_F1);
+    } else {
+      ClearBit(state.fx_down, code - KEY_F1);
+    }
     return;
   }
 
   switch (code) {
     case KEY_BACKSPACE: 
-      state->backspace = value;
+      state.backspace_down = b;
       return;
     case KEY_F11:
-      state->f11 = value; 
+      state.f11_down = b; 
       return;
     case KEY_UP: 
-      state->up = value;
+      state.up_down = b;
       return; 
     case KEY_LEFT: 
-      state->left = value;
+      state.left_down = b;
       return; 
     case KEY_RIGHT: 
-      state->right = value;
+      state.right_down = b;
       return; 
     case KEY_DOWN: 
-      state->down = value;
+      state.down_down = b;
       return; 
   }
 }
@@ -135,31 +151,24 @@ char is_accelerator(int code) {
   return 0;
 }
  
-static void insert_meta_event(stupidlayers_t* sl, key_state* state, struct timeval* t, int v) {
-  static struct input_event vev;
-  vev.type = EV_KEY;
-  vev.code = KEY_LEFTMETA;
-  vev.time = *t;
-  vev.value = v;
-  
-  state->virtual_meta_value = v;
-  stupidlayers_send(sl, &vev);
+static void insert_meta_event(struct timeval* t, int v) {
+  state.v_meta_value = v > 0;
+
+  meta_ev.time = *t;
+  meta_ev.value = v;
+  stupidlayers_send(sl, &meta_ev);
 }
 
-static void insert_caps_events(stupidlayers_t* sl, struct timeval* t) {
-  static struct input_event vev;
-  vev.type = EV_KEY;
-  vev.code = KEY_CAPSLOCK;
-  vev.time = *t;
-
-  vev.value = 1;
-  stupidlayers_send(sl, &vev);
-  vev.value = 0;
-  stupidlayers_send(sl, &vev);
+static void insert_caps_events(struct timeval* t) {
+  caps_ev.time = *t;
+  caps_ev.value = 1;
+  stupidlayers_send(sl, &caps_ev);
+  caps_ev.value = 0;
+  stupidlayers_send(sl, &caps_ev);
 }
 
-static int fn_key_handler(key_state* state, struct input_event* ev) {
-  state->leftmeta = ev->value;
+static int fn_key_handler(struct input_event* ev) {
+  state.meta_down = ev->value > 0;
   
   if(ev->value != 0) {
     // key down -> discard.
@@ -167,49 +176,47 @@ static int fn_key_handler(key_state* state, struct input_event* ev) {
   }
   
   // key up
-  if(state->virtual_fn_value) {
+  if(state.v_fn_value) {
     // not a tap
-    state->virtual_fn_value = 0;
+    state.v_fn_value = 0;
     return 1;
   } 
   
-  if(!state->virtual_meta_value) {
+  if(!state.v_meta_value) {
     // tap
-    if(state->alt_value) {
-      insert_caps_events(state->sl, &ev->time);
+    if(state.alt_down) {
+      insert_caps_events(&ev->time);
       return 1;
     }
   
     // insert down discarded earlier
-    insert_meta_event(state->sl, state, &ev->time, 1);
+    insert_meta_event(&ev->time, 1);
   }
   
-  state->virtual_meta_value = 0;
+  state.v_meta_value = 0;
   return 0;
 }
 
-static int acc_key_handler(key_state* state, struct input_event* ev) {
+static int acc_key_handler(struct input_event* ev) {
   if(ev->value == 2) {
     // don't repeat accelerators
     return 1;
   }
 
   if(ev->code == KEY_LEFTALT || ev->code == KEY_RIGHTALT) {
-    state->alt_value = ev->value;
+    state.alt_down = ev->value > 0;
   }
 
   return 0;
 }
 
 static int key_handler(void* data, struct input_event* ev) {
-  key_state* state = data;
-  
   if(ev->code == KEY_LEFTMETA) {
-    return fn_key_handler(state, ev);
+    return fn_key_handler(ev);
   }
 
   if(is_accelerator(ev->code)) {
-    return acc_key_handler(state, ev);
+    return acc_key_handler(ev);
   }
 
   if(ev->code == KEY_POWER) {
@@ -219,26 +226,26 @@ static int key_handler(void* data, struct input_event* ev) {
   // ordinary, non-accelerator key
   if(ev->value != 1) {
     // key is already down
-    if(get_key_fn(state, ev->code) > 0) {
-      set_key_fn(state, ev->code, ev->value);
-      ev->code = fn_remap(state, ev->code);
+    if(get_key_fn(ev->code) > 0) {
+      set_key_fn(ev->code, ev->value);
+      ev->code = fn_map(ev->code);
     }
-  } else if(state->leftmeta) {
+  } else if(state.meta_down) {
     // key up and fn-level set
-    int fn_code = fn_remap(state, ev->code);
+    int fn_code = fn_map(ev->code);
     
     if(fn_code > 0) {
-      if(state->virtual_meta_value) {
+      if(state.v_meta_value) {
         // set meta up 
-        insert_meta_event(state->sl, state, &ev->time, 0);
+        insert_meta_event(&ev->time, 0);
       }
 
-      state->virtual_fn_value = 1;
-      set_key_fn(state, ev->code, ev->value);
+      state.v_fn_value = 1;
+      set_key_fn(ev->code, ev->value);
       ev->code = fn_code;
-    } else if(!state->virtual_meta_value) {
+    } else if(!state.v_meta_value) {
       // insert previously suppressed meta down.
-      insert_meta_event(state->sl, state, &ev->time, 1);
+      insert_meta_event(&ev->time, 1);
     } 
   }
 
@@ -251,13 +258,10 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  key_state state;
-  init_key_state(&state);
-
-  state.sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
+  sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
   
-  if(set_keys(state.sl) < 0) return -1;
+  if(set_key_bits() < 0) return -1;
 
-  stupidlayers_run(state.sl, key_handler, &state);
+  stupidlayers_run(sl, key_handler, &state);
   return 0;
 }
