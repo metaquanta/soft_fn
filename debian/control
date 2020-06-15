@@ -1,0 +1,15 @@
+Source: soft-fn
+Section: unknown
+Priority: optional
+Maintainer: m <m@metaquanta.com>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.5.0
+Homepage: https://github.com/metaquanta/soft_fn
+#Vcs-Browser: https://github.com/metaquanta/soft_fn
+#Vcs-Git: https://github.com/metaquanta/soft_fn.git
+
+Package: soft-fn
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
