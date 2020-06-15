@@ -11,8 +11,9 @@ Homepage: https://github.com/metaquanta/soft_fn
 Package: soft-fn
 Architecture: any
 Depends: systemd, ${shlibs:Depends}
-Description: Provides <SEARCH> triggered layer-switching for Chromebooks.
- Provides a uinput virtual keyboard that behaves as though the Chromebook
- <SEARCH> key is an <FN> key when combined with certain keys (the arrow keys,
- the function/media keys, and delete) while continuing to be an ordinary
- accelerator (<LEFTMETA>) when combined with other keys. 
+Description: Emulated <FN> keyboard layer switching
+ Provides <SEARCH> triggered layer-switching for Chromebooks. Creates a uinput
+ virtual keyboard that behaves as though the Chromebook <SEARCH> key is an
+ <FN> key when combined with certain keys (the arrow keys, the function/media
+ keys, and delete) while continuing to be an ordinary accelerator (<LEFTMETA>)
+ when combined with other keys. 
