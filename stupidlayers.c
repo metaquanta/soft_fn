@@ -129,7 +129,7 @@ void free_stupidlayers(stupidlayers_t* sl) {
 }
 
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev) {
-  fprintf(stderr, "type: %i, code: %i, value: %i\n",ev->type, ev->code, ev->value);
+  //fprintf(stderr, "type: %i, code: %i, value: %i\n",ev->type, ev->code, ev->value);
   if (write(sl->uinput, ev, sizeof(struct input_event)) < 0) {
     perror("write");
     sl->errstr = "failed to write to uinput";
