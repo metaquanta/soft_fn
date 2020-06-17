@@ -24,7 +24,7 @@ stupidlayers_t* new_stupidlayers(char* device, char* name);
 int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev);
 
 /* see stupidlayers_run */
-typedef int input_handler_t(void* data, struct input_event* ev);
+typedef int input_handler_t(struct input_event* ev);
 
 /*
  * read keyboard events in a blocking loop and forward them to the virtual
@@ -34,12 +34,10 @@ typedef int input_handler_t(void* data, struct input_event* ev);
  * of all keys at that moment. it's allowed to modify both the event and
  * the state of the keys
  *
- * data can be used to pass custom data to handlers
- *
  * pre_handler is called before the key_states array is modified
  * post_handler is called after the key_states array is modified
  */
-void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data);
+void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler);
 
 /* stop stupidlayers_run loop */
 void stupidlayers_stop(stupidlayers_t* sl);
@@ -138,7 +136,7 @@ int stupidlayers_send(stupidlayers_t* sl, struct input_event* ev) {
   return 1;
 }
 
-void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
+void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler)
 {
   struct input_event ev;
   if (ioctl(sl->uinput, UI_DEV_CREATE) < 0) {
@@ -155,7 +153,7 @@ void stupidlayers_run(stupidlayers_t* sl, input_handler_t* handler, void* data)
     }
     if (ev.type == EV_KEY) {
       /* modify event here if desired */
-      if (handler && handler(data, &ev)) {
+      if (handler && handler(&ev)) {
         continue;
       }
     } else if (ev.type == EV_SYN && last_ev_type == EV_SYN) {

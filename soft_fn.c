@@ -6,7 +6,7 @@
 #define TestBit(A, k) (A[(k) / 8] & (1 << (k) % 8))
 
 static int fx_map[] = {
-  KEY_BACK, 
+  KEY_BACK,
   KEY_FORWARD,
   KEY_REFRESH,
   KEY_DASHBOARD,
@@ -62,8 +62,8 @@ static int fn_map(int code) {
 }
 
 static int set_key_bits() {
-  for(int i = 1; i <= 68; ++i) {
-    if(i != 55) {
+  for(int i = KEY_ESC; i <= KEY_F10; ++i) {
+    if(i != KEY_KPASTERISK) {
       if (stupidlayers_setkeybit(sl, i) < 0) {
         return -1;
       }
@@ -72,8 +72,8 @@ static int set_key_bits() {
   stupidlayers_setkeybit(sl, KEY_F11);
   stupidlayers_setkeybit(sl, KEY_RIGHTCTRL);
   stupidlayers_setkeybit(sl, KEY_RIGHTALT);
-  for(int i = 102; i <= 116; ++i) {
-    if(i != 110 && i != 112) stupidlayers_setkeybit(sl, i);
+  for(int i = KEY_HOME; i <= KEY_POWER; ++i) {
+    if(i != KEY_INSERT && i != KEY_MACRO) stupidlayers_setkeybit(sl, i);
   }
   stupidlayers_setkeybit(sl, KEY_SCALE);
   stupidlayers_setkeybit(sl, KEY_LEFTMETA);
@@ -210,7 +210,7 @@ static int acc_key_handler(struct input_event* ev) {
   return 0;
 }
 
-static int key_handler(void* data, struct input_event* ev) {
+static int key_handler(struct input_event* ev) {
   if(ev->code == KEY_LEFTMETA) {
     return fn_key_handler(ev);
   }
@@ -219,7 +219,8 @@ static int key_handler(void* data, struct input_event* ev) {
     return acc_key_handler(ev);
   }
 
-  if(ev->code == KEY_POWER) {
+  if(ev->code == KEY_POWER || ev->code == KEY_F13) {
+    // KEY_F13 is log-out key on convertibles
     ev->code = KEY_F11;
   }
   
@@ -262,6 +263,6 @@ int main(int argc, char* argv[]) {
   
   if(set_key_bits() < 0) return -1;
 
-  stupidlayers_run(sl, key_handler, &state);
+  stupidlayers_run(sl, key_handler);
   return 0;
 }
