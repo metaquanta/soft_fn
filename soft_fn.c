@@ -195,6 +195,7 @@ static int fn_key_handler(struct input_event* ev) {
   // tap
   // insert down discarded earlier
   insert_meta_event(&ev->time, 1);
+  state.v_meta = 0;
   return 0;
 }
 
