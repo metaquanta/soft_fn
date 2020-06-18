@@ -30,8 +30,8 @@ static struct {
   unsigned int right_down : 1;
   unsigned int down_down : 1;
   char fx_down[2];
-  unsigned int v_fn_value : 1;
-  unsigned int v_meta_value : 1;
+  unsigned int v_fn : 1;
+  unsigned int v_meta : 1;
 } state;
 
 static struct input_event meta_ev = {
@@ -152,7 +152,7 @@ char is_accelerator(int code) {
 }
  
 static void insert_meta_event(struct timeval* t, int v) {
-  state.v_meta_value = v > 0;
+  state.v_meta = v > 0;
 
   meta_ev.time = *t;
   meta_ev.value = v;
@@ -168,32 +168,33 @@ static void insert_caps_events(struct timeval* t) {
 }
 
 static int fn_key_handler(struct input_event* ev) {
-  state.meta_down = ev->value > 0;
-  
   if(ev->value != 0) {
     // key down -> discard.
+    state.meta_down = 1;
+    return 1;
+  }
+
+  if(state.v_meta) {
+    // key up with an earlier key down.
+    state.v_meta = 0;
+    state.v_fn = 0;
+    return 0;
+  }
+  
+  if(state.v_fn) {
+    state.v_fn = 0;
     return 1;
   }
   
-  // key up
-  if(state.v_fn_value) {
-    // not a tap
-    state.v_fn_value = 0;
+  // alt+tap
+  if(state.alt_down) {
+    insert_caps_events(&ev->time);
     return 1;
-  } 
-  
-  if(!state.v_meta_value) {
-    // tap
-    if(state.alt_down) {
-      insert_caps_events(&ev->time);
-      return 1;
-    }
-  
-    // insert down discarded earlier
-    insert_meta_event(&ev->time, 1);
   }
-  
-  state.v_meta_value = 0;
+
+  // tap
+  // insert down discarded earlier
+  insert_meta_event(&ev->time, 1);
   return 0;
 }
 
@@ -232,19 +233,19 @@ static int key_handler(struct input_event* ev) {
       ev->code = fn_map(ev->code);
     }
   } else if(state.meta_down) {
-    // key up and fn-level set
+    // key down and fn-level set
     int fn_code = fn_map(ev->code);
     
     if(fn_code > 0) {
-      if(state.v_meta_value) {
+      if(state.v_meta) {
         // set meta up 
         insert_meta_event(&ev->time, 0);
       }
 
-      state.v_fn_value = 1;
+      state.v_fn = 1;
       set_key_fn(ev->code, ev->value);
       ev->code = fn_code;
-    } else if(!state.v_meta_value) {
+    } else if(!state.v_meta) {
       // insert previously suppressed meta down.
       insert_meta_event(&ev->time, 1);
     } 
