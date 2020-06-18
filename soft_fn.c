@@ -1,11 +1,28 @@
-#define STUPIDLAYERS_IMPLEMENTATION
-#include "stupidlayers.c"
- 
+#include <fcntl.h>
+#include <linux/uinput.h> 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #define SetBit(A, k) (A[(k) / 8] |= (1 << (k) % 8))
 #define ClearBit(A, k) (A[(k) / 8] &= ~(1 << (k) % 8))            
 #define TestBit(A, k) (A[(k) / 8] & (1 << (k) % 8))
 
-static int fx_map[] = {
+#define KEY_MASK { \
+  0xFE, 0xFF, 0xFF, 0xFF, \
+  0xFF, 0xFF, 0x7F, 0xFF, \
+  0x1F, 0x00, 0x80, 0x00, \
+  0xD2, 0xBF, 0x1E, 0x21, \
+  0x00, 0x00, 0x00, 0xC0, \
+  0x00, 0x20, 0x00, 0x00, \
+  0x00, 0x10, 0x00, 0x00, \
+  0x03, 0x00, 0x00, 0x00 \
+}
+
+#define KEYBOARD_NAME "Chromebook keyboard (soft-fn)"
+
+static unsigned short fx_map[] = {
   KEY_BACK,
   KEY_FORWARD,
   KEY_REFRESH,
@@ -18,7 +35,7 @@ static int fx_map[] = {
   KEY_VOLUMEUP
 };
 
-static stupidlayers_t* sl;
+int kbin, kbout;
   
 static struct {
   unsigned int alt_down : 1;
@@ -29,7 +46,7 @@ static struct {
   unsigned int left_down : 1;
   unsigned int right_down : 1;
   unsigned int down_down : 1;
-  char fx_down[2];
+  unsigned char fx_down[2];
   unsigned int v_fn : 1;
   unsigned int v_meta : 1;
 } state;
@@ -59,31 +76,6 @@ static int fn_map(int code) {
   }
 
   return -1;
-}
-
-static int set_key_bits() {
-  for(int i = KEY_ESC; i <= KEY_F10; ++i) {
-    if(i != KEY_KPASTERISK) {
-      if (stupidlayers_setkeybit(sl, i) < 0) {
-        return -1;
-      }
-    }
-  }
-  stupidlayers_setkeybit(sl, KEY_F11);
-  stupidlayers_setkeybit(sl, KEY_RIGHTCTRL);
-  stupidlayers_setkeybit(sl, KEY_RIGHTALT);
-  for(int i = KEY_HOME; i <= KEY_POWER; ++i) {
-    if(i != KEY_INSERT && i != KEY_MACRO) stupidlayers_setkeybit(sl, i);
-  }
-  stupidlayers_setkeybit(sl, KEY_SCALE);
-  stupidlayers_setkeybit(sl, KEY_LEFTMETA);
-  stupidlayers_setkeybit(sl, KEY_BACK);
-  stupidlayers_setkeybit(sl, KEY_FORWARD);
-  stupidlayers_setkeybit(sl, KEY_REFRESH);
-  stupidlayers_setkeybit(sl, KEY_DASHBOARD);
-  stupidlayers_setkeybit(sl, KEY_BRIGHTNESSUP);
-  stupidlayers_setkeybit(sl, KEY_BRIGHTNESSDOWN);
-  return 0;
 }
 
 static char get_key_fn(int code) {
@@ -137,7 +129,7 @@ static void set_key_fn(int code, char value) {
   }
 }
 
-char is_accelerator(int code) {
+static char is_accelerator(int code) {
   switch (code) {
     case KEY_LEFTSHIFT:
     case KEY_RIGHTSHIFT:
@@ -151,68 +143,82 @@ char is_accelerator(int code) {
   return 0;
 }
  
+static void write_event(struct input_event* ev) {
+  if(write(kbout, ev, sizeof(struct input_event)) < 0) {
+    fprintf(stderr, "failed to write event");
+    exit(-1);
+  }
+}
+
+static void read_event(struct input_event* ev) {
+  unsigned int err = read(kbin, ev, sizeof(struct input_event));
+  if(err != sizeof(struct input_event)) {
+      fprintf(stderr, "failed to read event [%d]", err);
+      exit(-1);
+    }
+}
+
 static void insert_meta_event(struct timeval* t, int v) {
   state.v_meta = v > 0;
 
   meta_ev.time = *t;
   meta_ev.value = v;
-  stupidlayers_send(sl, &meta_ev);
+  write_event(&meta_ev);
 }
 
 static void insert_caps_events(struct timeval* t) {
   caps_ev.time = *t;
   caps_ev.value = 1;
-  stupidlayers_send(sl, &caps_ev);
+  write_event(&caps_ev);
   caps_ev.value = 0;
-  stupidlayers_send(sl, &caps_ev);
+  write_event(&caps_ev);
 }
 
 static int fn_key_handler(struct input_event* ev) {
   state.meta_down = ev->value > 0;
   if(ev->value != 0) {
     // key down -> discard.
-    return 1;
+    return 0;
   }
 
   if(state.v_meta) {
     // key up with an earlier key down.
     state.v_meta = 0;
     state.v_fn = 0;
-    return 0;
+    write_event(ev);
+    return 1;
   }
   
   if(state.v_fn) {
     state.v_fn = 0;
-    return 1;
+    return 0;
   }
   
   // alt+tap
   if(state.alt_down) {
     insert_caps_events(&ev->time);
-    return 1;
+    return 2;
   }
 
   // tap
   // insert down discarded earlier
   insert_meta_event(&ev->time, 1);
   state.v_meta = 0;
-  return 0;
+  write_event(ev);
+  return 2;
 }
 
 static int acc_key_handler(struct input_event* ev) {
-  if(ev->value == 2) {
-    // don't repeat accelerators
-    return 1;
-  }
-
   if(ev->code == KEY_LEFTALT || ev->code == KEY_RIGHTALT) {
     state.alt_down = ev->value > 0;
   }
-
-  return 0;
+  write_event(ev);
+  return 1;
 }
 
 static int key_handler(struct input_event* ev) {
+  int ev_count = 0;
+
   if(ev->code == KEY_LEFTMETA) {
     return fn_key_handler(ev);
   }
@@ -241,6 +247,7 @@ static int key_handler(struct input_event* ev) {
       if(state.v_meta) {
         // set meta up 
         insert_meta_event(&ev->time, 0);
+        ev_count++;
       }
 
       state.v_fn = 1;
@@ -249,10 +256,94 @@ static int key_handler(struct input_event* ev) {
     } else if(!state.v_meta) {
       // insert previously suppressed meta down.
       insert_meta_event(&ev->time, 1);
+      ev_count++;
     } 
   }
 
+  write_event(ev);
+  return ++ev_count;
+}
+  
+static int setup(char* kbin_path) {
+  struct uinput_user_dev uidev;
+  
+  // open keyboard
+  kbin = open(kbin_path, O_RDONLY);
+  if (kbin < 0) {
+    fprintf(stderr, "failed to open %s\n", kbin_path);
+    return -1;
+  }
+
+  // consume all events here
+  if (ioctl(kbin, EVIOCGRAB, (void*)1) < 0) {
+    fprintf(stderr, "ioctl: failed to grab %s\n", kbin_path);
+    return -1;
+  }
+
+  // create virtual keyboard
+  kbout = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+  if (kbout < 0) {
+    fprintf(stderr, "failed to open /dev/uinput\n");
+    return -1;
+  }
+
+  if (ioctl(kbout, UI_SET_EVBIT, EV_KEY) < 0) {
+    fprintf(stderr, "ioctl: failed to set EVBIT\n");
+    return -1;
+  }
+
+  unsigned char keys[] = KEY_MASK;
+  for(int i = 1; i <= KEY_BRIGHTNESSUP; i++) {
+    if(TestBit(keys, i)) {
+      if(ioctl(kbout, UI_SET_KEYBIT, i) < 0) {
+        fprintf(stderr, "ioctl: failed to set KEYBIT [%d]\n", i);
+        return -1;
+      }
+    }
+  }
+
+  memset(&uidev, 0, sizeof(uidev));
+  strcpy(uidev.name, KEYBOARD_NAME);
+  if (write(kbout, &uidev, sizeof(uidev)) < 0) {
+    fprintf(stderr, "failed to write to /dev/uinput\n");
+    return -1;
+  }
+
+  int err;
+  err = ioctl(kbout, UI_DEV_CREATE);
+  if (err < 0) {
+    fprintf(stderr, "ioctl: failed to create device [%d]\n", err);
+    return -1;
+  }
+  
   return 0;
+}
+
+static int cruise() {
+  struct input_event ev;
+  struct input_event syn_ev = {
+    .type = EV_SYN, 
+    .code = SYN_REPORT
+  };
+  
+  while (1) {
+    read_event(&ev);
+    if (ev.type == EV_KEY && ev.value != 2) {
+      switch (key_handler(&ev)) {
+        case 0: 
+          break;
+        case 1:
+        case 2:
+        case 3:
+          syn_ev.time = ev.time;
+          write_event(&syn_ev);
+          break;
+        default:
+          fprintf(stderr, "unknown error handling event\n");
+          return -1;
+      }
+    } 
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -261,10 +352,9 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  sl = new_stupidlayers(argv[1], "Chromebook keyboard (sl enhanced)");
-  
-  if(set_key_bits() < 0) return -1;
-
-  stupidlayers_run(sl, key_handler);
-  return 0;
+  if(setup(argv[1]) != 0) {
+    fprintf(stderr, "failed to initialize devices\n");
+    return -1;
+  }
+  return cruise(key_handler);
 }
