@@ -168,9 +168,9 @@ static void insert_caps_events(struct timeval* t) {
 }
 
 static int fn_key_handler(struct input_event* ev) {
+  state.meta_down = ev->value > 0;
   if(ev->value != 0) {
     // key down -> discard.
-    state.meta_down = 1;
     return 1;
   }
 
