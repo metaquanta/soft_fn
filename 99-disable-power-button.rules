@@ -1,5 +1,4 @@
-#KERNELS=="LNXPWRBN:0" \
-#SUBSYSTEM=="input" \
+# There has to be a way to prevent the bind. This isn't it.
 ACTION=="bind", \
 DEVPATH=="/devices/LNXSYSTM:00/LNXPWRBN:00", \
 RUN{program}="/bin/sh -c 'echo -n LNXPWRBN:00 > /sys/devices/LNXSYSTM\:00/LNXPWRBN\:00/driver/unbind'" 
