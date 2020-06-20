@@ -46,7 +46,8 @@ The function keys between **esc** and **power** are identified as **F1** to **F1
 
 The **power**/⏻ (or **logout**/🔒︎) key usually generates a `KEY_POWER` (or `KEY_F13`) event. With **soft-fn** it generates `KEY_F11` alone and `KEY_POWER` with **Search**. 
 
-(Note: The power key on traditional form-factor Chromebooks generates a redundant `KEY_POWER` event from a second dedicated device that will trigger a suspend regardless of **soft-fn**. To disable this device copy the included udev rules file to `/etc/udev/rules.d/`. This isn't a problem with convertibles.)
+Note: The power key on traditional form-factor Chromebooks generates a redundant `KEY_POWER` event from a second dedicated device that will trigger a suspend regardless of **soft-fn**. To disable this device copy the included udev rules file to `/etc/udev/rules.d/`. 
+I need more information on the behavior of the power key and other input devices on convertible Chromebooks.
 
 ## Installation
 
