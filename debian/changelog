@@ -1,4 +1,10 @@
-soft-fn (0.3) UNRELEASED; urgency=medium
+soft-fn (0.4) UNRELEASED; urgency=medium
+
+  * Added F13 for convertibles. 
+
+ -- m <m@metaquanta.com>  Tue, 23 Jun 2020 21:57:03 -0400
+
+soft-fn (0.3) unstable; urgency=medium
 
   * Swap function of f-keys. Now <super> + Fx send Fx code.
 
