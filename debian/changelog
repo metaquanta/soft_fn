@@ -1,4 +1,10 @@
-soft-fn (0.2) UNRELEASED; urgency=medium
+soft-fn (0.3) UNRELEASED; urgency=medium
+
+  * Swap function of f-keys. Now <super> + Fx send Fx code.
+
+ -- m <m@metaquanta.com>  Tue, 23 Jun 2020 20:35:27 -0400
+
+soft-fn (0.2) unstable; urgency=medium
 
   * Refactoring. Removed stupid_layers.
 
