@@ -35,13 +35,13 @@ static unsigned short fx_map[] = {
   KEY_VOLUMEUP
 };
 
-int kbin, kbout;
-  
+static int kbin, kbout;
+
 static struct {
   unsigned int alt_down : 1;
   unsigned int meta_down : 1;
   unsigned int backspace_down : 1;
-  unsigned int f11_down : 1;
+  unsigned int power_down : 1;
   unsigned int up_down : 1;
   unsigned int left_down : 1;
   unsigned int right_down : 1;
@@ -62,13 +62,13 @@ static struct input_event caps_ev = {
 }; 
 
 static int fn_map(int code) {
-  if(code >= KEY_F1 && code <= KEY_F10) {
-    return fx_map[code - KEY_F1];
+  if((code >= KEY_F1 && code <= KEY_F10) || code == KEY_POWER) {
+    return code;
   }
 
   switch (code) {
     case KEY_BACKSPACE: return KEY_DELETE; 
-    case KEY_F11: return KEY_POWER;
+    case KEY_POWER: return KEY_POWER;
     case KEY_UP: return KEY_PAGEUP; 
     case KEY_LEFT: return KEY_HOME; 
     case KEY_RIGHT: return KEY_END; 
@@ -85,7 +85,7 @@ static char get_key_fn(int code) {
 
   switch (code) {
     case KEY_BACKSPACE: return state.backspace_down; 
-    case KEY_F11: return state.f11_down;
+    case KEY_POWER: return state.power_down;
     case KEY_UP: return state.up_down; 
     case KEY_LEFT: return state.left_down; 
     case KEY_RIGHT: return state.right_down; 
@@ -111,8 +111,8 @@ static void set_key_fn(int code, char value) {
     case KEY_BACKSPACE: 
       state.backspace_down = b;
       return;
-    case KEY_F11:
-      state.f11_down = b; 
+    case KEY_POWER:
+      state.power_down = b; 
       return;
     case KEY_UP: 
       state.up_down = b;
@@ -129,7 +129,7 @@ static void set_key_fn(int code, char value) {
   }
 }
 
-static char is_accelerator(int code) {
+static int is_accelerator(int code) {
   switch (code) {
     case KEY_LEFTSHIFT:
     case KEY_RIGHTSHIFT:
@@ -159,7 +159,7 @@ static void read_event(struct input_event* ev) {
 }
 
 static void insert_meta_event(struct timeval* t, int v) {
-  state.v_meta = v > 0;
+  state.v_meta = v;
 
   meta_ev.time = *t;
   meta_ev.value = v;
@@ -227,17 +227,14 @@ static int key_handler(struct input_event* ev) {
     return acc_key_handler(ev);
   }
 
-  if(ev->code == KEY_POWER || ev->code == KEY_F13) {
-    // KEY_F13 is log-out key on convertibles
-    ev->code = KEY_F11;
-  }
-  
   // ordinary, non-accelerator key
   if(ev->value != 1) {
     // key is already down
     if(get_key_fn(ev->code) > 0) {
       set_key_fn(ev->code, ev->value);
       ev->code = fn_map(ev->code);
+    } else if(ev->code >= KEY_F1 && ev->code <= KEY_F10) {
+      ev->code = fx_map[ev->code - KEY_F1];
     }
   } else if(state.meta_down) {
     // key down and fn-level set
@@ -258,6 +255,10 @@ static int key_handler(struct input_event* ev) {
       insert_meta_event(&ev->time, 1);
       ev_count++;
     } 
+  } else if(ev->code >= KEY_F1 && ev->code <= KEY_F10) {
+    ev->code = fx_map[ev->code - KEY_F1];
+  } else if(ev->code == KEY_POWER) {
+    return ev_count;
   }
 
   write_event(ev);
