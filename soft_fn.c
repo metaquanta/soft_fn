@@ -78,7 +78,7 @@ static int fn_map(int code) {
   return -1;
 }
 
-static char get_key_fn(int code) {
+static int get_key_fn(int code) {
   if(code >= KEY_F1 && code <= KEY_F10) {
     return TestBit(state.fx_down, code - KEY_F1);
   }
@@ -95,7 +95,7 @@ static char get_key_fn(int code) {
   return -1;
 }
 
-static void set_key_fn(int code, char value) {
+static void set_key_fn(int code, unsigned char value) {
   int b = value > 0;
 
   if(code >= KEY_F1 && code <= KEY_F10) {
