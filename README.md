@@ -18,24 +18,24 @@ This emulates the behavior seen in ChromeOS while also allowing the **Search**/�
 The codes below are defined in [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
 
 
-| Key  | code                 | 🔍︎+key code |
-|------|----------------------|-----------------|
-| F1/⇦ | `BACK`      | `F1`  |
-| F2/⇨ | `FORWARD`   | `F2`  |
-| F3/⟳ | `REFRESH`   | `F3`  |
-| F4/⇱︎ | `DASHBOARD`¹| `F4`  |
-| F5/⯣ | `SCALE`²    | `F5`  |
-| F6/🔅| `BRIGHTNESSDOWN` | `F6`  |
-| F7/🔆| `BRIGHTNESSUP`   | `F7`  |
-| F8/🔇| `MUTE`           | `F8`  |
-| F9/🔉| `VOLUMEDOWN`     | `F9`  |
-|F10/🔊| `VOLUMEUP`       | `F10` |
-| ⏻ | nothing³ | `POWER`         |
-|  ⌫   | `BACKSPACE` | `DELETE` |
-|  ←   | `LEFT`  | `HOME`       |
-|  →   | `RIGHT` | `END`        |
-|  ↑   | `UP`    | `PAGEUP`     |
-|  ↓   | `DOWN`  | `PAGEDOWN`   |
+| Key  | code             | 🔍︎+key code |
+|------|------------------|-------------|
+| F1/⇦ | `BACK`           | `F1`        |
+| F2/⇨ | `FORWARD`        | `F2`        |
+| F3/⟳ | `REFRESH`        | `F3`        |
+| F4/⇱︎ | `DASHBOARD`¹     | `F4`        |
+| F5/⯣ | `SCALE`²         | `F5`        |
+| F6/🔅| `BRIGHTNESSDOWN` | `F6`        |
+| F7/🔆| `BRIGHTNESSUP`   | `F7`        |
+| F8/🔇| `MUTE`           | `F8`        |
+| F9/🔉| `VOLUMEDOWN`     | `F9`        |
+|F10/🔊| `VOLUMEUP`       | `F10`       |
+|  ⏻   | nothing³         | `POWER`     |
+|  ⌫   | `BACKSPACE`      | `DELETE`    |
+|  ←   | `LEFT`           | `HOME`      |
+|  →   | `RIGHT`          | `END`       |
+|  ↑   | `UP`             | `PAGEUP`    |
+|  ↓   | `DOWN`           | `PAGEDOWN`  |
  
 ¹ The `KEY_FULL_SCREEN` code is inconveniently located beyond the lower 7-bits and not well known to software.
 
@@ -44,7 +44,7 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
 ³ This is different from the ChromeOS behavior.
 
 Note: The power key on traditional form-factor Chromebooks generates a redundant `KEY_POWER` event from a second dedicated device that will trigger a suspend regardless of **soft-fn**. To disable this device copy the included udev rules file to `/etc/udev/rules.d/`. Do not disable this device to retain the functionality of
-the ⏻/**power** key on convertibles. 
+the ⏻/**power** key next to the volume rocker on convertibles. 
 
 ## Installation
 
@@ -56,4 +56,8 @@ If you don't want a `.deb`, clone then `make`.
 
 ## Compatibility
 
-Tested in bullseye on CHELL, but should work on any laptop that emulates an i8042-controlled keyboard.
+Tested in bullseye on CHELL, but should work on any intel Chromebook.
+
+## Acknowledgments
+
+Thank you, @Francesco149 for [stupidlayers](https://github.com/Francesco149/stupidlayers), even though I've since refactored it away.
