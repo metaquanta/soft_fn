@@ -24,7 +24,7 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
 | F2/⇨ | `FORWARD`        | `F2`        |
 | F3/⟳ | `REFRESH`        | `F3`        |
 | F4/⇱︎ | `DASHBOARD`¹     | `F4`        |
-| F5/⯣ | `SCALE`²         | `F5`        |
+| F5/🍱 | `SCALE`²         | `F5`        |
 | F6/🔅| `BRIGHTNESSDOWN` | `F6`        |
 | F7/🔆| `BRIGHTNESSUP`   | `F7`        |
 | F8/🔇| `MUTE`           | `F8`        |
