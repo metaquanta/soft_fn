@@ -54,6 +54,10 @@ To build a `.deb`, clone then `dpkg-buildpackage -us -uc`.
 
 If you don't want a `.deb`, clone then `make`.
 
+## Verification
+
+My public key is at [metaquanta.com/deb_signing_key.gpg](https://metaquanta.com/deb_signing_key.gpg).
+
 ## Compatibility
 
 Tested in bullseye on CHELL, but should work on any intel Chromebook.
