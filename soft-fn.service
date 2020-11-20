@@ -1,5 +1,5 @@
 [Unit]
-Description=Provides <SEARCH> triggered layer-switching on the internal keyboard similar to ChromeOS
+Description=Virtual keyboard (soft-fn)
 Before=gdm.service
 Before=getty.service systemd-logind.service
 Requires=udev.service 

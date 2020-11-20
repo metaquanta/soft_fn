@@ -20,7 +20,7 @@
   0x03, 0x00, 0x00, 0x00 \
 }
 
-#define KEYBOARD_NAME "Chromebook keyboard (soft-fn)"
+#define KEYBOARD_NAME "Virtual keyboard (soft-fn)"
 
 static unsigned short fx_map[] = {
   KEY_BACK,
