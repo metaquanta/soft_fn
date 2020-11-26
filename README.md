@@ -1,6 +1,6 @@
 # soft-fn
 
-**soft-fn** reproduces the behavior of the Chromebook keyboard's **Search** key in linux. It uses an `evdev` `uinput` device, such that it works in Xorg, Wayland, and virtual consoles. 
+**soft-fn** reproduces the behavior of the Chromebook keyboard's **Search** key in linux. It uses an `evdev` `uinput` device, such that it works in Xorg, Wayland, and virtual consoles. **soft-fn** is incredibly light-weight with only 576 bytes resident and unlikely to accumulate fifteen seconds of CPU time over the course of a busy day. 
 
 ## Functionality
 
@@ -39,7 +39,7 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
  
 ¹ The `KEY_FULL_SCREEN` code is inconveniently located beyond the lower 7-bits and not well known to software.
 
-² `KEY_SCALE` is the code Apple keyboards use for the "expose" key, which performs a similar function.
+² `KEY_SCALE` is the code Apple keyboards use for the "expose" key, which performs a similar function and (at least) Gnome understands it oob.
 
 ³ This is different from the ChromeOS behavior.
 
