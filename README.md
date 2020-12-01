@@ -37,7 +37,7 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
 |  ↑   | `UP`             | `PAGEUP`    |
 |  ↓   | `DOWN`           | `PAGEDOWN`  |
  
-¹ The `KEY_FULL_SCREEN` code is inconveniently located beyond the lower 7-bits and not well known to software.
+¹ The `KEY_FULL_SCREEN` code is inconveniently located beyond the first byte and not well known to software.
 
 ² `KEY_SCALE` is the code Apple keyboards use for the "expose" key, which performs a similar function and (at least) Gnome understands it oob.
 
