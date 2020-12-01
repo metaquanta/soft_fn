@@ -1,6 +1,6 @@
 # soft-fn
 
-**soft-fn** reproduces the behavior of the Chromebook keyboard's **Search** key in linux. It uses an `evdev` `uinput` device, such that it works in Xorg, Wayland, and virtual consoles. **soft-fn** is incredibly light-weight with only 576 bytes resident and unlikely to accumulate fifteen seconds of CPU time over the course of a busy day. 
+**soft-fn** reproduces the behavior of the Chromebook keyboard's **Search** key in linux. It uses an `evdev` `uinput` device, such that it works in Xorg, Wayland, and virtual consoles.
 
 ## Functionality
 
