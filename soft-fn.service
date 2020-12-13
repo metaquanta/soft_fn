@@ -15,6 +15,8 @@ ExecStart=/usr/share/soft_fn/launch.sh
 
 #PrivateUsers=true
 #ProtectClock=true
+AmbientCapabilities=CAP_DAC_OVERRIDE 
+CapabilityBoundingSet=CAP_DAC_OVERRIDE 
 DeviceAllow=char-input rwm
 DeviceAllow=/dev/uinput rwm
 DevicePolicy=closed
@@ -46,7 +48,3 @@ SystemCallErrorNumber=EPERM
 # All additional syscalls here are needed by launch.sh to identify the correct eventX device
 SystemCallFilter=getcwd access arch_prctl brk clone close dup2 fchdir fcntl fstat fstatfs futex getdents64 getuid ioctl lseek mmap mprotect munmap newfstatat openat pipe poll ppoll prlimit64 read recvfrom rt_sigaction rt_sigprocmask sendto set_robust_list set_tid_address socket stat statfs uname wait4 write
 UMask=777
-# TODO: find minimum subset
-AmbientCapabilities=CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_KILL CAP_LINUX_IMMUTABLE CAP_NET_BIND_SERVICE CAP_NET_BROADCAST CAP_NET_RAW CAP_IPC_LOCK CAP_SYS_MODULE CAP_SYS_CHROOT CAP_SYS_PACCT CAP_SYS_BOOT CAP_SYS_NICE CAP_SYS_RESOURCE CAP_SYS_TTY_CONFIG CAP_MKNOD CAP_LEASE CAP_AUDIT_WRITE CAP_AUDIT_CONTROL CAP_MAC_OVERRIDE CAP_MAC_ADMIN CAP_SYSLOG CAP_WAKE_ALARM CAP_BLOCK_SUSPEND CAP_AUDIT_READ CAP_PERFMON CAP_BPF CAP_CHECKPOINT_RESTORE
-# TODO: find minimum subset
-CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_KILL CAP_LINUX_IMMUTABLE CAP_NET_BIND_SERVICE CAP_NET_BROADCAST CAP_NET_RAW CAP_IPC_LOCK CAP_SYS_MODULE CAP_SYS_CHROOT CAP_SYS_PACCT CAP_SYS_BOOT CAP_SYS_NICE CAP_SYS_RESOURCE CAP_SYS_TTY_CONFIG CAP_MKNOD CAP_LEASE CAP_AUDIT_WRITE CAP_AUDIT_CONTROL CAP_MAC_OVERRIDE CAP_MAC_ADMIN CAP_SYSLOG CAP_WAKE_ALARM CAP_BLOCK_SUSPEND CAP_AUDIT_READ CAP_PERFMON CAP_BPF CAP_CHECKPOINT_RESTORE
