@@ -47,4 +47,4 @@ SystemCallErrorNumber=EPERM
 #SystemCallFilter=access arch_prctl brk close fstat ioctl mmap mprotect munmap openat read write
 # All additional syscalls here are needed by launch.sh to identify the correct eventX device
 SystemCallFilter=getcwd access arch_prctl brk clone close dup2 fchdir fcntl fstat fstatfs futex getdents64 getuid ioctl lseek mmap mprotect munmap newfstatat openat pipe poll ppoll prlimit64 read recvfrom rt_sigaction rt_sigprocmask sendto set_robust_list set_tid_address socket stat statfs uname wait4 write
-UMask=777
+UMask=0777
