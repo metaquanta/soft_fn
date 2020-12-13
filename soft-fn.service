@@ -32,6 +32,10 @@ RestrictAddressFamilies=AF_UNIX
 RestrictRealtime=yes
 SystemCallArchitectures=native
 SystemCallErrorNumber=EPERM
+# These are the only syscalls used by soft-fn.
+#SystemCallFilter=access arch_prctl brk close fstat ioctl mmap mprotect munmap openat read write
+# Most of these are only used by the shell building soft-fn's parameter
+SystemCallFilter=getcwd access arch_prctl brk clone close dup2 fchdir fcntl fstat fstatfs futex getdents64 getuid ioctl lseek mmap mprotect munmap newfstatat openat pipe poll ppoll prlimit64 read recvfrom rt_sigaction rt_sigprocmask sendto set_robust_list set_tid_address socket stat statfs uname wait4 write
 # TODO: consolidate/isolate below
 AmbientCapabilities=~CAP_RAWIO
 AmbientCapabilities=~CAP_SETUID
@@ -56,13 +60,3 @@ CapabilityBoundingSet=~CAP_SYS_RAWIO
 CapabilityBoundingSet=~CAP_SYS_TIME
 # TODO: Figure out device filter
 # DeviceAllow="dev/input/event*"
-# TODO: consolidate/isolate below
-SystemCallFilter=~@clock
-SystemCallFilter=~@debug
-SystemCallFilter=~@module
-SystemCallFilter=~@mount
-SystemCallFilter=~@privileged
-SystemCallFilter=~@reboot
-SystemCallFilter=~@swap
-SystemCallFilter=~@raw-io
-SystemCallFilter=~@resources
