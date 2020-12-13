@@ -13,29 +13,39 @@ Nice=-19
 IOSchedulingClass=realtime
 ExecStart=/usr/share/soft_fn/launch.sh
 
+#PrivateUsers=true
+#ProtectClock=true
+DeviceAllow=char-input rwm
+DeviceAllow=/dev/uinput rwm
+DevicePolicy=closed
 DynamicUser=yes
-PrivateNetwork=true
-ProtectHome=yes
-ProtectHostname=yes
-ProtectSystem=strict
-RestrictNamespaces=yes
-RestrictSUIDSGID=yes
-PrivateTmp=yes
+IPAddressDeny=any
 LockPersonality=yes
 MemoryDenyWriteExecute=yes
 NoNewPrivileges=yes
+PrivateNetwork=true
+PrivateTmp=yes
+ProcSubset=pid
 ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
 ProtectKernelModules=yes
 ProtectKernelTunables=yes
-ProtectKernelLogs=yes
+ProtectProc=invisible
+ProtectSystem=strict
+# AF_UNIX is not needed but there doesn't appear to be a way to block all
 RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
 RestrictRealtime=yes
+RestrictSUIDSGID=yes
 SystemCallArchitectures=native
 SystemCallErrorNumber=EPERM
 # These are the only syscalls used by soft-fn.
 #SystemCallFilter=access arch_prctl brk close fstat ioctl mmap mprotect munmap openat read write
-# Most of these are only used by the shell building soft-fn's parameter
+# All additional syscalls here are needed by launch.sh to identify the correct eventX device
 SystemCallFilter=getcwd access arch_prctl brk clone close dup2 fchdir fcntl fstat fstatfs futex getdents64 getuid ioctl lseek mmap mprotect munmap newfstatat openat pipe poll ppoll prlimit64 read recvfrom rt_sigaction rt_sigprocmask sendto set_robust_list set_tid_address socket stat statfs uname wait4 write
+UMask=777
 # TODO: consolidate/isolate below
 AmbientCapabilities=~CAP_RAWIO
 AmbientCapabilities=~CAP_SETUID
@@ -58,5 +68,3 @@ CapabilityBoundingSet=~CAP_IPC_OWNER
 CapabilityBoundingSet=~CAP_NET_ADMIN
 CapabilityBoundingSet=~CAP_SYS_RAWIO
 CapabilityBoundingSet=~CAP_SYS_TIME
-# TODO: Figure out device filter
-# DeviceAllow="dev/input/event*"
