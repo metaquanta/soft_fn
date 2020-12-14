@@ -1,12 +1,11 @@
 [Unit]
 Description=Virtual keyboard (soft-fn)
-Before=gdm.service
-Before=getty.service systemd-logind.service
 Requires=udev.service 
 
 [Install]
 WantedBy=graphical.target
 WantedBy=multi-user.target
+WantedBy=getty.target
 
 [Service]
 Nice=-19
@@ -36,7 +35,6 @@ ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectProc=invisible
 ProtectSystem=strict
-# AF_UNIX is not needed but there doesn't appear to be a way to block all
 RestrictAddressFamilies=AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
@@ -44,7 +42,8 @@ RestrictSUIDSGID=yes
 SystemCallArchitectures=native
 SystemCallErrorNumber=EPERM
 # These are the only syscalls used by soft-fn.
-#SystemCallFilter=access arch_prctl brk close fstat ioctl mmap mprotect munmap openat read write
+#SystemCallFilter=access arch_prctl close fstat ioctl mprotect openat read write
+#SystemCallFilter=@basic-io @file-system @process ioctl mprotect
 # All additional syscalls here are needed by launch.sh to identify the correct eventX device
-SystemCallFilter=getcwd access arch_prctl brk clone close dup2 fchdir fcntl fstat fstatfs futex getdents64 getuid ioctl lseek mmap mprotect munmap newfstatat openat pipe poll ppoll prlimit64 read recvfrom rt_sigaction rt_sigprocmask sendto set_robust_list set_tid_address socket stat statfs uname wait4 write
+SystemCallFilter=@basic-io @file-system @process @io-event @signal pipe ioctl mprotect recvfrom sendto socket uname
 UMask=0777
