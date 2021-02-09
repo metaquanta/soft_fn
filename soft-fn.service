@@ -14,10 +14,13 @@ ExecStart=/usr/share/soft_fn/launch.sh
 
 #PrivateUsers=true
 #ProtectClock=true
-AmbientCapabilities=CAP_DAC_OVERRIDE 
-CapabilityBoundingSet=CAP_DAC_OVERRIDE 
+# for some reason these DeviceAllows don't do what I think they should
 DeviceAllow=char-input rw
 DeviceAllow=/dev/uinput rw
+# CAP_DAC_OVERRIDE + some syscalls like @basic-io and/or @file-system is equivalent to root and renders moot everything else
+# CAP_DAC_OVERRIDE will be removed as soon as the DeviceAllows above are figured out.
+AmbientCapabilities=CAP_DAC_OVERRIDE 
+CapabilityBoundingSet=CAP_DAC_OVERRIDE 
 DevicePolicy=closed
 DynamicUser=yes
 IPAddressDeny=any
@@ -35,6 +38,7 @@ ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectProc=invisible
 ProtectSystem=strict
+# How to restrict all families?
 RestrictAddressFamilies=AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
