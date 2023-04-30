@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <linux/input-event-codes.h>
 #include <linux/uinput.h> 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,26 +15,28 @@
   0xFF, 0xFF, 0x7F, 0xFF, \
   0x1F, 0x00, 0x80, 0x00, \
   0xD2, 0xBF, 0x1E, 0x21, \
-  0x00, 0x00, 0x00, 0xC0, \
+  0x00, 0x08, 0x00, 0xC0, \
   0x00, 0x20, 0x80, 0x00, \
   0x00, 0x10, 0x00, 0x00, \
   0x03, 0x00, 0x00, 0x00 \
 }
 
+#define FN_MAP { \
+  KEY_BACK, \
+  KEY_REFRESH, \
+  KEY_SCALE, \
+  KEY_DASHBOARD, \
+  KEY_BRIGHTNESSDOWN, \
+  KEY_BRIGHTNESSUP, \
+  KEY_PLAYPAUSE, \
+  KEY_MUTE, \
+  KEY_VOLUMEDOWN, \
+  KEY_VOLUMEUP \
+}
+
 #define KEYBOARD_NAME "Virtual keyboard (soft-fn)"
 
-static unsigned short fx_map[] = {
-  KEY_BACK,
-  KEY_FORWARD,
-  KEY_REFRESH,
-  KEY_DASHBOARD,
-  KEY_SCALE,
-  KEY_BRIGHTNESSDOWN,
-  KEY_BRIGHTNESSUP,
-  KEY_MUTE,
-  KEY_VOLUMEDOWN,
-  KEY_VOLUMEUP
-};
+static unsigned short fx_map[] = FN_MAP;
 
 static int kbin, kbout;
 
@@ -41,11 +44,11 @@ static struct {
   unsigned int alt_down : 1;
   unsigned int meta_down : 1;
   unsigned int backspace_down : 1;
-  unsigned int power_down : 1;
   unsigned int up_down : 1;
   unsigned int left_down : 1;
   unsigned int right_down : 1;
   unsigned int down_down : 1;
+  unsigned int hamburger_down : 1;
   unsigned char fx_down[2];
   unsigned int v_fn : 1;
   unsigned int v_meta : 1;
@@ -59,23 +62,33 @@ static struct input_event meta_ev = {
 static struct input_event caps_ev = {
   .type = EV_KEY,
   .code = KEY_CAPSLOCK
-}; 
+};
 
 static int fn_map(int code) {
-  if((code >= KEY_F1 && code <= KEY_F10) || code == KEY_POWER) {
+  if(code >= KEY_F1 && code <= KEY_F10) {
     return code;
   }
 
   switch (code) {
-    case KEY_BACKSPACE: return KEY_DELETE; 
-    case KEY_POWER: return KEY_POWER;
+    case KEY_BACKSPACE: return KEY_DELETE;
     case KEY_UP: return KEY_PAGEUP; 
     case KEY_LEFT: return KEY_HOME; 
     case KEY_RIGHT: return KEY_END; 
     case KEY_DOWN: return KEY_PAGEDOWN;
+    case KEY_F13: return KEY_F11;
   }
 
   return -1;
+}
+
+static int map(int code) {
+  if(code >= KEY_F1 && code <= KEY_F10) {
+    return fx_map[code - KEY_F1];
+  }
+  if(code == KEY_F13) {
+    return KEY_MENU;
+  }
+  return code;
 }
 
 static int get_key_fn(int code) {
@@ -84,22 +97,20 @@ static int get_key_fn(int code) {
   }
 
   switch (code) {
-    case KEY_BACKSPACE: return state.backspace_down; 
-    case KEY_POWER: return state.power_down;
+    case KEY_BACKSPACE: return state.backspace_down;
     case KEY_UP: return state.up_down; 
     case KEY_LEFT: return state.left_down; 
     case KEY_RIGHT: return state.right_down; 
-    case KEY_DOWN: return state.down_down; 
+    case KEY_DOWN: return state.down_down;
+    case KEY_F13: return state.hamburger_down; 
   }
 
   return -1;
 }
 
-static void set_key_fn(int code, unsigned char value) {
-  int b = value > 0;
-
+static void set_key_fn(int code, int value) {
   if(code >= KEY_F1 && code <= KEY_F10) {
-    if(b) {
+    if(value) {
       SetBit(state.fx_down, code - KEY_F1);
     } else {
       ClearBit(state.fx_down, code - KEY_F1);
@@ -109,23 +120,23 @@ static void set_key_fn(int code, unsigned char value) {
 
   switch (code) {
     case KEY_BACKSPACE: 
-      state.backspace_down = b;
-      return;
-    case KEY_POWER:
-      state.power_down = b; 
+      state.backspace_down = value > 0;
       return;
     case KEY_UP: 
-      state.up_down = b;
+      state.up_down = value > 0;
       return; 
     case KEY_LEFT: 
-      state.left_down = b;
+      state.left_down = value > 0;
       return; 
     case KEY_RIGHT: 
-      state.right_down = b;
+      state.right_down = value > 0;
       return; 
     case KEY_DOWN: 
-      state.down_down = b;
+      state.down_down = value > 0;
       return; 
+    case KEY_F13:
+      state.hamburger_down = value > 0;
+      return;
   }
 }
 
@@ -137,6 +148,7 @@ static int is_accelerator(int code) {
     case KEY_RIGHTALT:
     case KEY_LEFTCTRL:
     case KEY_RIGHTCTRL:
+    case KEY_RIGHTMETA:
       return 1;
   }
 
@@ -144,6 +156,9 @@ static int is_accelerator(int code) {
 }
  
 static void write_event(struct input_event* ev) {
+  if (ev->type == EV_KEY) {
+    fprintf(stderr, "tx: %d [%d]\n", ev->code, ev->value);
+  }
   if(write(kbout, ev, sizeof(struct input_event)) < 0) {
     fprintf(stderr, "failed to write event");
     exit(-1);
@@ -227,14 +242,19 @@ static int key_handler(struct input_event* ev) {
     return acc_key_handler(ev);
   }
 
+  // ignore power key. event2 (power key) will handle
+  if(ev->code == KEY_POWER) {
+    return 0;
+  }
+
   // ordinary, non-accelerator key
   if(ev->value != 1) {
     // key is already down
     if(get_key_fn(ev->code) > 0) {
       set_key_fn(ev->code, ev->value);
       ev->code = fn_map(ev->code);
-    } else if(ev->code >= KEY_F1 && ev->code <= KEY_F10) {
-      ev->code = fx_map[ev->code - KEY_F1];
+    } else {
+      ev->code = map(ev->code);
     }
   } else if(state.meta_down) {
     // key down and fn-level set
@@ -255,10 +275,8 @@ static int key_handler(struct input_event* ev) {
       insert_meta_event(&ev->time, 1);
       ev_count++;
     } 
-  } else if(ev->code >= KEY_F1 && ev->code <= KEY_F10) {
-    ev->code = fx_map[ev->code - KEY_F1];
-  } else if(ev->code == KEY_POWER) {
-    return ev_count;
+  } else {
+    ev->code = map(ev->code);
   }
 
   write_event(ev);
@@ -330,20 +348,17 @@ static int cruise() {
   while (1) {
     read_event(&ev);
     if (ev.type == EV_KEY && ev.value != 2) {
-      switch (key_handler(&ev)) {
-        case 0: 
-          break;
-        case 1:
-        case 2:
-        case 3:
-          syn_ev.time = ev.time;
-          write_event(&syn_ev);
-          break;
-        default:
-          fprintf(stderr, "unknown error handling event\n");
-          return -1;
+      fprintf(stderr, "rx: %d [%d]\n", ev.code, ev.value);
+      int n = key_handler(&ev);
+      if(n > 0) {
+        syn_ev.time = ev.time;
+        write_event(&syn_ev);
       }
-    } 
+      if(n < 0) {
+        fprintf(stderr, "unknown error handling event\n");
+        return -1;
+      }
+    }
   }
 }
 
@@ -357,5 +372,6 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "failed to initialize devices\n");
     return -1;
   }
-  return cruise(key_handler);
+
+  return cruise();
 }
