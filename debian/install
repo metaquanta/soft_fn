@@ -1,4 +1,4 @@
-launch.sh /usr/share/soft_fn
 soft_fn /usr/sbin
 soft-fn.service /lib/systemd/system
 99-disable-power-button.rules /usr/share/soft_fn
+61-eve-keyboard.hwdb /usr/share/soft_fn
