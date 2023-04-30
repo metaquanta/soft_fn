@@ -1,0 +1,6 @@
+# Keyboard mapping for chromebooks with an assistant key (ie Eve/Pixelbook)
+#
+# The assistant key sends 0xD8 (216), which isn't in the supported event code 
+# mask for "AT Translated Set 2 keyboard".
+evdev:atkbd:dmi:bvn*:bvr*:bd*:svnGoogle:pnEve:pvr*
+ KEYBOARD_KEY_d8=rightmeta 
