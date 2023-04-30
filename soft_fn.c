@@ -14,9 +14,9 @@
   0xFE, 0xFF, 0xFF, 0xFF, \
   0xFF, 0xFF, 0x7F, 0xFF, \
   0x1F, 0x00, 0x80, 0x00, \
-  0xD2, 0xBF, 0x1E, 0x21, \
+  0xD2, 0xBF, 0x1E, 0x61, \
   0x00, 0x08, 0x00, 0xC0, \
-  0x00, 0x20, 0x80, 0x00, \
+  0x10, 0x20, 0x00, 0x00, \
   0x00, 0x10, 0x00, 0x00, \
   0x03, 0x00, 0x00, 0x00 \
 }
@@ -251,13 +251,14 @@ static int key_handler(struct input_event* ev) {
   if(ev->value != 1) {
     // key is already down
     if(get_key_fn(ev->code) > 0) {
+      // key down was fn-level
       set_key_fn(ev->code, ev->value);
       ev->code = fn_map(ev->code);
     } else {
       ev->code = map(ev->code);
     }
   } else if(state.meta_down) {
-    // key down and fn-level set
+    // key down and fn already down
     int fn_code = fn_map(ev->code);
     
     if(fn_code > 0) {
