@@ -1,3 +1,5 @@
+UPDATE: I'm archiving this project. I have not looked at this code in a long time and the hep cats seem to be using [keyd](https://github.com/rvaiya/keyd/tree/master) these days.
+
 # soft-fn
 
 **soft-fn** reproduces the behavior of the Chromebook keyboard's **Search** key in linux. It uses an `evdev` `uinput` device, such that it works in Xorg, Wayland, and virtual consoles.
