@@ -30,6 +30,12 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
  
 Function/media keys and power are passed through unchanged.
 
+If the hardware emits media-key codes from the top row, pass those thirteen
+codes with `--function_row='xx xx xx xx xx xx xx xx xx xx xx xx xx'` to map
+the row to `F1` through `F13`. Holding **Search**/🔍︎ while pressing one of
+those keys suppresses `KEY_LEFTMETA` and passes the original media-key code
+through.
+
 ## Installation
 
 For AMD64 Debian/Ubuntu/Gallium/etc, get a `.deb` [here](https://github.com/metaquanta/soft_fn/releases/tag/v0.2).

@@ -1,13 +1,26 @@
 #include <fcntl.h>
+#include <ctype.h>
 #include <linux/uinput.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 
 #define KEYBOARD_NAME "Virtual keyboard (soft-fn)"
+#define FUNCTION_ROW_SIZE 13
 
 static int kbin, kbout;
+static int function_row_enabled;
+static int function_row[FUNCTION_ROW_SIZE];
+
+static const int function_keys[FUNCTION_ROW_SIZE] = {
+  KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7,
+  KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12, KEY_F13
+};
+
+static int get_function_row_index(int code);
+static int function_row_map(int code);
 
 static struct {
   unsigned int alt_down : 1;
@@ -19,6 +32,7 @@ static struct {
   unsigned int down_down : 1;
   unsigned int v_fn : 1;
   unsigned int v_meta : 1;
+  unsigned int function_row_down[FUNCTION_ROW_SIZE];
 } state;
 
 static struct input_event meta_ev = {
@@ -31,7 +45,37 @@ static struct input_event caps_ev = {
   .code = KEY_CAPSLOCK
 };
 
+static int get_function_row_index(int code) {
+  if(!function_row_enabled) {
+    return -1;
+  }
+
+  for(int i = 0; i < FUNCTION_ROW_SIZE; i++) {
+    if(function_row[i] == code) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+static int function_row_map(int code) {
+  int function_row_index = get_function_row_index(code);
+
+  if(function_row_index < 0) {
+    return -1;
+  }
+
+  return function_keys[function_row_index];
+}
+
 static int fn_map(int code) {
+  int mapped_code = function_row_map(code);
+
+  if(mapped_code > 0) {
+    return mapped_code;
+  }
+
   switch (code) {
     case KEY_BACKSPACE: return KEY_DELETE;
     case KEY_UP: return KEY_PAGEUP;
@@ -44,6 +88,12 @@ static int fn_map(int code) {
 }
 
 static int get_key_fn(int code) {
+  int function_row_index = get_function_row_index(code);
+
+  if(function_row_index >= 0) {
+    return state.function_row_down[function_row_index];
+  }
+
   switch (code) {
     case KEY_BACKSPACE: return state.backspace_down;
     case KEY_UP: return state.up_down;
@@ -57,6 +107,12 @@ static int get_key_fn(int code) {
 
 static void set_key_fn(int code, unsigned char value) {
   int b = value > 0;
+  int function_row_index = get_function_row_index(code);
+
+  if(function_row_index >= 0) {
+    state.function_row_down[function_row_index] = b;
+    return;
+  }
 
   switch (code) {
     case KEY_BACKSPACE:
@@ -166,6 +222,7 @@ static int acc_key_handler(struct input_event* ev) {
 
 static int key_handler(struct input_event* ev) {
   int ev_count = 0;
+  int function_row_index;
 
   if(ev->code == KEY_LEFTMETA) {
     return fn_key_handler(ev);
@@ -175,6 +232,8 @@ static int key_handler(struct input_event* ev) {
     return acc_key_handler(ev);
   }
 
+  function_row_index = get_function_row_index(ev->code);
+
   // ordinary, non-accelerator key
   if(ev->value != 1) {
     // key is already down
@@ -182,6 +241,17 @@ static int key_handler(struct input_event* ev) {
       set_key_fn(ev->code, ev->value);
       ev->code = fn_map(ev->code);
     }
+  } else if(function_row_index >= 0 && !state.meta_down) {
+    set_key_fn(ev->code, ev->value);
+    ev->code = function_keys[function_row_index];
+  } else if(function_row_index >= 0 && state.meta_down) {
+    if(state.v_meta) {
+      // set meta up
+      insert_meta_event(&ev->time, 0);
+      ev_count++;
+    }
+
+    state.v_fn = 1;
   } else if(state.meta_down) {
     // key down and fn-level set
     int fn_code = fn_map(ev->code);
@@ -235,7 +305,7 @@ static int setup(char* kbin_path) {
     return -1;
   }
 
-  for(int i = 1; i <= KEY_LEFTMETA; i++) {
+  for(int i = 1; i <= KEY_MAX; i++) {
     if(ioctl(kbout, UI_SET_KEYBIT, i) < 0) {
       fprintf(stderr, "ioctl: failed to set KEYBIT [%d]\n", i);
       return -1;
@@ -253,6 +323,105 @@ static int setup(char* kbin_path) {
   err = ioctl(kbout, UI_DEV_CREATE);
   if (err < 0) {
     fprintf(stderr, "ioctl: failed to create device [%d]\n", err);
+    return -1;
+  }
+
+  return 0;
+}
+
+static void print_usage(char* program_name) {
+  fprintf(stderr, "usage: %s [--function_row='xx xx xx xx xx xx xx xx xx xx xx xx xx'] /dev/input/eventX\n", program_name);
+}
+
+static int parse_hex_pair(char* value) {
+  char* end;
+  long code;
+
+  if(strlen(value) != 2) {
+    return -1;
+  }
+
+  if(!isxdigit((unsigned char)value[0]) || !isxdigit((unsigned char)value[1])) {
+    return -1;
+  }
+
+  code = strtol(value, &end, 16);
+  if(*end != '\0' || code < 0 || code > 0xff) {
+    return -1;
+  }
+
+  return (int)code;
+}
+
+static int parse_function_row(char* value) {
+  char* token;
+
+  for(int i = 0; i < FUNCTION_ROW_SIZE; i++) {
+    token = strtok(i == 0 ? value : NULL, " \t");
+    if(token == NULL) {
+      fprintf(stderr, "--function_row requires thirteen hex pairs\n");
+      return -1;
+    }
+
+    function_row[i] = parse_hex_pair(token);
+    if(function_row[i] < 0) {
+      fprintf(stderr, "invalid --function_row value: %s\n", token);
+      return -1;
+    }
+
+    for(int j = 0; j < i; j++) {
+      if(function_row[j] == function_row[i]) {
+        fprintf(stderr, "duplicate --function_row value: %s\n", token);
+        return -1;
+      }
+    }
+  }
+
+  if(strtok(NULL, " \t") != NULL) {
+    fprintf(stderr, "--function_row requires thirteen hex pairs\n");
+    return -1;
+  }
+
+  function_row_enabled = 1;
+  return 0;
+}
+
+static int parse_args(int argc, char* argv[], char** kbin_path) {
+  *kbin_path = NULL;
+
+  for(int i = 1; i < argc; i++) {
+    if(strncmp(argv[i], "--function_row=", 15) == 0) {
+      if(function_row_enabled) {
+        fprintf(stderr, "--function_row specified more than once\n");
+        return -1;
+      }
+
+      if(parse_function_row(argv[i] + 15) != 0) {
+        return -1;
+      }
+    } else if(strcmp(argv[i], "--function_row") == 0) {
+      if(function_row_enabled) {
+        fprintf(stderr, "--function_row specified more than once\n");
+        return -1;
+      }
+
+      if(++i >= argc) {
+        fprintf(stderr, "--function_row requires a value\n");
+        return -1;
+      }
+
+      if(parse_function_row(argv[i]) != 0) {
+        return -1;
+      }
+    } else if(*kbin_path == NULL) {
+      *kbin_path = argv[i];
+    } else {
+      fprintf(stderr, "unexpected argument: %s\n", argv[i]);
+      return -1;
+    }
+  }
+
+  if(*kbin_path == NULL) {
     return -1;
   }
 
@@ -287,14 +456,16 @@ static int cruise() {
 }
 
 int main(int argc, char* argv[]) {
-  if(argc != 2) {
-    fprintf(stderr, "usage: %s /dev/input/eventX\n", argv[0]);
+  char* kbin_path;
+
+  if(parse_args(argc, argv, &kbin_path) != 0) {
+    print_usage(argv[0]);
     return -1;
   }
 
-  if(setup(argv[1]) != 0) {
+  if(setup(kbin_path) != 0) {
     fprintf(stderr, "failed to initialize devices\n");
     return -1;
   }
-  return cruise(key_handler);
+  return cruise();
 }
