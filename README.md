@@ -20,33 +20,15 @@ This emulates the behavior seen in ChromeOS while also allowing the **Search**/�
 The codes below are defined in [linux/input-event-codes.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/input-event-codes.h)
 
 
-| Key  | code             | 🔍︎+key code |
-|------|------------------|-------------|
-| F1/⇦ | `BACK`           | `F1`        |
-| F2/⇨ | `FORWARD`        | `F2`        |
-| F3/⟳ | `REFRESH`        | `F3`        |
-| F4/⇱︎ | `DASHBOARD`¹     | `F4`        |
-| F5/🍱 | `SCALE`²         | `F5`        |
-| F6/🔅| `BRIGHTNESSDOWN` | `F6`        |
-| F7/🔆| `BRIGHTNESSUP`   | `F7`        |
-| F8/🔇| `MUTE`           | `F8`        |
-| F9/🔉| `VOLUMEDOWN`     | `F9`        |
-|F10/🔊| `VOLUMEUP`       | `F10`       |
-|  ⏻   | nothing³         | `POWER`     |
-|  ⌫   | `BACKSPACE`      | `DELETE`    |
-|  ←   | `LEFT`           | `HOME`      |
-|  →   | `RIGHT`          | `END`       |
-|  ↑   | `UP`             | `PAGEUP`    |
-|  ↓   | `DOWN`           | `PAGEDOWN`  |
+| Key | code        | 🔍︎+key code |
+|-----|-------------|-------------|
+| ⌫   | `BACKSPACE` | `DELETE`    |
+| ←   | `LEFT`      | `HOME`      |
+| →   | `RIGHT`     | `END`       |
+| ↑   | `UP`        | `PAGEUP`    |
+| ↓   | `DOWN`      | `PAGEDOWN`  |
  
-¹ The `KEY_FULL_SCREEN` code is inconveniently located beyond the first byte and not well known to software.
-
-² `KEY_SCALE` is the code Apple keyboards use for the "expose" key, which performs a similar function and (at least) Gnome understands it oob.
-
-³ This is different from the ChromeOS behavior.
-
-Note: The power key on traditional form-factor Chromebooks generates a redundant `KEY_POWER` event from a second dedicated device that will trigger a suspend regardless of **soft-fn**. To disable this device copy the included udev rules file to `/etc/udev/rules.d/`. Do not disable this device to retain the functionality of
-the ⏻/**power** key next to the volume rocker on convertibles. 
+Function/media keys and power are passed through unchanged.
 
 ## Installation
 
