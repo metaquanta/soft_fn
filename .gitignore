@@ -1,4 +1,5 @@
 soft_fn
+toprow
 *.o
 debian/.debhelper
 debian/soft-fn 

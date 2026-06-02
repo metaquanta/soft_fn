@@ -333,20 +333,22 @@ static void print_usage(char* program_name) {
   fprintf(stderr, "usage: %s [--function_row='xx xx xx xx xx xx xx xx xx xx xx xx xx'] /dev/input/eventX\n", program_name);
 }
 
-static int parse_hex_pair(char* value) {
+static int parse_hex_keycode(char* value) {
   char* end;
   long code;
 
-  if(strlen(value) != 2) {
+  if(*value == '\0') {
     return -1;
   }
 
-  if(!isxdigit((unsigned char)value[0]) || !isxdigit((unsigned char)value[1])) {
-    return -1;
+  for(char* p = value; *p != '\0'; p++) {
+    if(!isxdigit((unsigned char)*p)) {
+      return -1;
+    }
   }
 
   code = strtol(value, &end, 16);
-  if(*end != '\0' || code < 0 || code > 0xff) {
+  if(*end != '\0' || code < 0 || code > KEY_MAX) {
     return -1;
   }
 
@@ -359,11 +361,11 @@ static int parse_function_row(char* value) {
   for(int i = 0; i < FUNCTION_ROW_SIZE; i++) {
     token = strtok(i == 0 ? value : NULL, " \t");
     if(token == NULL) {
-      fprintf(stderr, "--function_row requires thirteen hex pairs\n");
+      fprintf(stderr, "--function_row requires thirteen hex keycodes\n");
       return -1;
     }
 
-    function_row[i] = parse_hex_pair(token);
+    function_row[i] = parse_hex_keycode(token);
     if(function_row[i] < 0) {
       fprintf(stderr, "invalid --function_row value: %s\n", token);
       return -1;
@@ -378,7 +380,7 @@ static int parse_function_row(char* value) {
   }
 
   if(strtok(NULL, " \t") != NULL) {
-    fprintf(stderr, "--function_row requires thirteen hex pairs\n");
+    fprintf(stderr, "--function_row requires thirteen hex keycodes\n");
     return -1;
   }
 
