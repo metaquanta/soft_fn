@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <ctype.h>
+#include <errno.h>
 #include <linux/uinput.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -283,7 +284,7 @@ static int setup(char* kbin_path) {
   // open keyboard
   kbin = open(kbin_path, O_RDONLY);
   if (kbin < 0) {
-    fprintf(stderr, "failed to open %s\n", kbin_path);
+    fprintf(stderr, "failed to open %s: %s\n", kbin_path, strerror(errno));
     return -1;
   }
 
@@ -296,7 +297,7 @@ static int setup(char* kbin_path) {
   // create virtual keyboard
   kbout = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
   if (kbout < 0) {
-    fprintf(stderr, "failed to open /dev/uinput\n");
+    fprintf(stderr, "failed to open /dev/uinput: %s\n", strerror(errno));
     return -1;
   }
 

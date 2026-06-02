@@ -2,4 +2,5 @@ launch.sh /usr/share/soft_fn
 soft_fn /usr/sbin
 toprow /usr/sbin
 soft-fn.service /lib/systemd/system
+99-soft-fn.rules /lib/udev/rules.d
 99-disable-power-button.rules /usr/share/soft_fn
