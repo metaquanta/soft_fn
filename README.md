@@ -28,11 +28,13 @@ The codes below are defined in [linux/input-event-codes.h](https://github.com/to
  
 Function/media keys and power are passed through unchanged.
 
-If the hardware emits media-key codes from the top row, pass those thirteen
-hex keycodes with `--function_row='xx xx xx xx xx xx xx xx xx xx xx xx xx'`
-to map the row to `F1` through `F13`. Holding **Search**/🔍︎ while pressing
+For chromebooks with the top row keys defined in /sys/devices/platform/i8042/serio0/function_row_physmap
+replace those with F-keys by passing the hex keycodes with `--function_row='xx xx xx xx xx xx xx xx xx xx xx xx xx'`
+Holding **Search**/🔍︎ while pressing
 one of those keys suppresses `KEY_LEFTMETA` and passes the original media-key
-code through.
+code through. 
+
+The scan codes in function_row_physmap are translated by `toprow.c`. (See `launch.sh`)
 
 ## Installation
 
@@ -48,7 +50,7 @@ My public key is at [metaquanta.com/deb_signing_key.gpg](https://metaquanta.com/
 
 ## Compatibility
 
-Tested in bullseye on CHELL, but should work on any intel Chromebook.
+Tested in trixie on Redrix, but should work on any intel Chromebook.
 
 ## Acknowledgments
 
